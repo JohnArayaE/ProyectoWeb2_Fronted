@@ -215,12 +215,17 @@ async function handleSubmit() {
   try {
 
     await authStore.login({
-
-      email: form.email,
-
-      password: form.password
-    })
-    await navigateTo("/")
+    email: form.email,
+    password: form.password
+})
+      const role = authStore.user?.role
+      if (role === "admin") {
+        await navigateTo("/admin")
+      } else if (role === "organizer") {
+        await navigateTo("/organizer")
+      } else {
+        await navigateTo("/")
+      }
   } catch (error: any) {
     message.value =
       error?.data?.message ||
