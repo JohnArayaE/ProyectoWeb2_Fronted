@@ -172,6 +172,9 @@
 </template>
 
 <script setup lang="ts">
+import { useAuthStore } from "~/stores/auth"
+const authStore = useAuthStore()
+
 const form = reactive({
   email: "",
   password: ""
@@ -179,6 +182,7 @@ const form = reactive({
 
 const showPassword = ref(false)
 const message = ref("")
+const isLoading = ref(false)
 
 useHead({
   title: "Iniciar sesión | CommunityHub",
@@ -191,9 +195,24 @@ useHead({
   ]
 })
 
-function handleSubmit() {
-  message.value =
-    "El formulario está listo. La autenticación se habilitará cuando conectemos el backend."
+async function handleSubmit() {
+  message.value = ""
+  isLoading.value = true
+
+  try {
+    await authStore.login({
+      email: form.email,
+      password: form.password
+    })
+
+    await navigateTo("/")
+  } catch (error: any) {
+    message.value =
+      error?.data?.message ||
+      "No fue posible iniciar sesión. Verifica tu correo y contraseña."
+  } finally {
+    isLoading.value = false
+  }
 }
 </script>
 
