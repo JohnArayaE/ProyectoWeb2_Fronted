@@ -198,6 +198,30 @@ function handleSubmit() {
 </script>
 
 <style scoped>
+:global(html),
+:global(body),
+:global(#__nuxt) {
+  width: 100%;
+  min-width: 100%;
+  min-height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+:global(html) {
+  background: #f3f1f7;
+}
+
+:global(body) {
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+:global(#__nuxt) {
+  min-height: 100vh;
+}
+
+
 * {
   box-sizing: border-box;
 }
