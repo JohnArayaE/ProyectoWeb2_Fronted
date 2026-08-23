@@ -8,6 +8,7 @@ export interface RegisterRequest {
   lastName: string
   email: string
   password: string
+  profilePicture?: string | null
 }
 
 export interface AuthUser {

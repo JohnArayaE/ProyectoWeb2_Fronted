@@ -15,7 +15,9 @@
 
       <!-- Encabezado -->
       <header class="form-header">
-        <span class="register-label">Crear cuenta</span>
+        <span class="register-label">
+          Crear cuenta
+        </span>
 
         <h1>Regístrate</h1>
 
@@ -25,19 +27,22 @@
       </header>
 
       <!-- Formulario -->
-      <form class="register-form" @submit.prevent="handleSubmit">
+      <form
+        class="register-form"
+        @submit.prevent="handleSubmit"
+      >
         <!-- Nombre y apellido -->
         <div class="name-fields">
           <div class="form-group">
-            <label for="name">
+            <label for="firstName">
               Nombre
             </label>
 
             <input
-              id="name"
-              v-model.trim="form.name"
+              id="firstName"
+              v-model.trim="form.firstName"
               type="text"
-              name="name"
+              name="firstName"
               autocomplete="given-name"
               placeholder="Tu nombre"
               required
@@ -92,7 +97,7 @@
               name="password"
               autocomplete="new-password"
               placeholder="Crea una contraseña"
-              minlength="2"
+              minlength="8"
               required
             >
 
@@ -157,7 +162,7 @@
               >
 
               <small>
-                JPG, PNG o WEBP
+                JPG, PNG o WEBP · Máximo 2 MB
               </small>
             </div>
 
@@ -172,25 +177,32 @@
           </div>
         </div>
 
-        <!-- Mensaje temporal -->
+        <!-- Mensaje -->
         <div
           v-if="message"
           class="information-message"
           role="status"
         >
-          <span aria-hidden="true">i</span>
+          <span aria-hidden="true">
+            i
+          </span>
 
           <p>
             {{ message }}
           </p>
         </div>
 
-        <!-- Botón -->
+        <!-- Crear cuenta -->
         <button
           class="submit-button"
           type="submit"
+          :disabled="isLoading"
         >
-          Crear cuenta
+          {{
+            isLoading
+              ? "Creando cuenta..."
+              : "Crear cuenta"
+          }}
         </button>
       </form>
 
@@ -210,16 +222,17 @@
       </NuxtLink>
 
       <div class="security-message">
-        <span aria-hidden="true">◆</span>
+        <span aria-hidden="true">
+          ◆
+        </span>
 
         <p>
-          Tus datos se procesarán de manera segura cuando conectemos
-          el servicio de autenticación.
+          Tus datos se procesan de manera segura para crear tu cuenta.
         </p>
       </div>
     </section>
 
-    <!-- Decoraciones de fondo -->
+    <!-- Decoraciones -->
     <div class="decoration decoration-one" />
     <div class="decoration decoration-two" />
     <div class="decoration decoration-three" />
@@ -227,16 +240,20 @@
 </template>
 
 <script setup lang="ts">
+import { useAuthStore } from "~/stores/auth"
+
 interface RegisterForm {
-  name: string
+  firstName: string
   lastName: string
   email: string
   password: string
   profilePhoto: File | null
 }
 
+const authStore = useAuthStore()
+
 const form = reactive<RegisterForm>({
-  name: "",
+  firstName: "",
   lastName: "",
   email: "",
   password: "",
@@ -246,17 +263,21 @@ const form = reactive<RegisterForm>({
 const showPassword = ref(false)
 const message = ref("")
 const profilePreview = ref("")
+const isLoading = ref(false)
 
 const userInitial = computed(() => {
-  if (!form.name) {
+  if (!form.firstName) {
     return "C"
   }
 
-  return form.name.charAt(0).toUpperCase()
+  return form.firstName
+    .charAt(0)
+    .toUpperCase()
 })
 
 useHead({
   title: "Crear cuenta | CommunityHub",
+
   meta: [
     {
       name: "description",
@@ -267,19 +288,54 @@ useHead({
 })
 
 function handlePhotoChange(event: Event) {
-  const input = event.target as HTMLInputElement
+  const input =
+    event.target as HTMLInputElement
+
   const file = input.files?.[0]
 
   if (!file) {
     return
   }
 
+  const allowedTypes = [
+    "image/jpeg",
+    "image/png",
+    "image/webp"
+  ]
+
+  if (!allowedTypes.includes(file.type)) {
+    message.value =
+      "Solo se permiten imágenes JPG, PNG o WEBP."
+
+    input.value = ""
+    form.profilePhoto = null
+    profilePreview.value = ""
+
+    return
+  }
+
+  const maxSize =
+    2 * 1024 * 1024
+
+  if (file.size > maxSize) {
+    message.value =
+      "La foto de perfil no puede superar los 2 MB."
+
+    input.value = ""
+    form.profilePhoto = null
+    profilePreview.value = ""
+
+    return
+  }
+
+  message.value = ""
   form.profilePhoto = file
 
   const reader = new FileReader()
 
   reader.onload = () => {
-    profilePreview.value = reader.result as string
+    profilePreview.value =
+      reader.result as string
   }
 
   reader.readAsDataURL(file)
@@ -289,18 +345,78 @@ function removePhoto() {
   form.profilePhoto = null
   profilePreview.value = ""
 
-  const input = document.getElementById(
-    "profilePhoto"
-  ) as HTMLInputElement | null
+  const input =
+    document.getElementById(
+      "profilePhoto"
+    ) as HTMLInputElement | null
 
   if (input) {
     input.value = ""
   }
 }
 
-function handleSubmit() {
-  message.value =
-    "El formulario está listo. El registro se habilitará cuando conectemos el backend."
+function fileToBase64(
+  file: File
+): Promise<string> {
+  return new Promise(
+    (resolve, reject) => {
+      const reader = new FileReader()
+
+      reader.onload = () => {
+        resolve(
+          reader.result as string
+        )
+      }
+
+      reader.onerror = () => {
+        reject(
+          new Error(
+            "No se pudo procesar la foto de perfil."
+          )
+        )
+      }
+
+      reader.readAsDataURL(file)
+    }
+  )
+}
+
+async function handleSubmit() {
+  message.value = ""
+  isLoading.value = true
+
+  try {
+    let profilePicture:
+      string | undefined
+
+    if (form.profilePhoto) {
+      profilePicture =
+        await fileToBase64(
+          form.profilePhoto
+        )
+    }
+
+    await authStore.register({
+      firstName: form.firstName,
+      lastName: form.lastName,
+      email: form.email,
+      password: form.password,
+      ...(profilePicture
+        ? {
+            profilePicture
+          }
+        : {})
+    })
+
+    await navigateTo("/login?registered=true")
+  } catch (error: any) {
+    message.value =
+      error?.data?.message ||
+      error?.message ||
+      "No fue posible crear la cuenta. Verifica los datos e inténtalo nuevamente."
+  } finally {
+    isLoading.value = false
+  }
 }
 </script>
 
@@ -350,7 +466,11 @@ function handleSubmit() {
   min-height: 100vh;
   padding: 48px 24px;
   overflow: hidden;
-  font-family: Inter, Arial, Helvetica, sans-serif;
+  font-family:
+    Inter,
+    Arial,
+    Helvetica,
+    sans-serif;
   place-items: center;
   background:
     radial-gradient(
@@ -375,7 +495,8 @@ function handleSubmit() {
   z-index: 2;
   width: min(620px, 100%);
   padding: 48px 52px;
-  border: 1px solid rgba(255, 255, 255, 0.85);
+  border: 1px solid
+    rgba(255, 255, 255, 0.85);
   border-radius: 28px;
   background:
     linear-gradient(
@@ -384,7 +505,8 @@ function handleSubmit() {
       #fdfcff 100%
     );
   box-shadow:
-    0 30px 80px rgba(24, 14, 40, 0.17);
+    0 30px 80px
+    rgba(24, 14, 40, 0.17);
 }
 
 /* =========================
@@ -415,7 +537,8 @@ function handleSubmit() {
       var(--purple)
     );
   box-shadow:
-    0 10px 24px rgba(124, 58, 237, 0.25);
+    0 10px 24px
+    rgba(124, 58, 237, 0.25);
 }
 
 .brand p {
@@ -479,7 +602,8 @@ function handleSubmit() {
 
 .name-fields {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns:
+    1fr 1fr;
   gap: 14px;
 }
 
@@ -503,7 +627,9 @@ function handleSubmit() {
   font-size: 14px;
   color: var(--text-dark);
   outline: none;
-  border: 1px solid var(--gray-border);
+  border:
+    1px solid
+    var(--gray-border);
   border-radius: 13px;
   background: var(--white);
   transition:
@@ -524,7 +650,8 @@ function handleSubmit() {
   border-color: var(--purple);
   background: #ffffff;
   box-shadow:
-    0 0 0 4px rgba(124, 58, 237, 0.11);
+    0 0 0 4px
+    rgba(124, 58, 237, 0.11);
 }
 
 /* =========================
@@ -590,7 +717,9 @@ function handleSubmit() {
   align-items: center;
   min-height: 88px;
   padding: 14px 15px;
-  border: 1px dashed #cfc7d8;
+  border:
+    1px dashed
+    #cfc7d8;
   border-radius: 15px;
   background: #faf9fc;
   transition:
@@ -599,7 +728,8 @@ function handleSubmit() {
 }
 
 .profile-upload:hover {
-  border-color: var(--purple-light);
+  border-color:
+    var(--purple-light);
   background: #f9f6ff;
 }
 
@@ -613,7 +743,9 @@ function handleSubmit() {
   font-weight: 900;
   color: var(--purple-dark);
   place-items: center;
-  border: 1px solid #d7cbea;
+  border:
+    1px solid
+    #d7cbea;
   border-radius: 50%;
   background:
     linear-gradient(
@@ -643,7 +775,9 @@ function handleSubmit() {
   font-weight: 800;
   color: var(--purple-dark);
   cursor: pointer;
-  border: 1px solid #d5c8eb;
+  border:
+    1px solid
+    #d5c8eb;
   border-radius: 9px;
   background: var(--white);
   transition:
@@ -683,7 +817,7 @@ function handleSubmit() {
 }
 
 /* =========================
-   Mensaje
+   Mensajes
 ========================= */
 
 .information-message {
@@ -692,7 +826,9 @@ function handleSubmit() {
   align-items: flex-start;
   padding: 13px 14px;
   color: #4c287d;
-  border: 1px solid #d8cced;
+  border:
+    1px solid
+    #d8cced;
   border-radius: 13px;
   background: #f5f1fc;
 }
@@ -717,7 +853,7 @@ function handleSubmit() {
 }
 
 /* =========================
-   Botón crear cuenta
+   Crear cuenta
 ========================= */
 
 .submit-button {
@@ -733,11 +869,14 @@ function handleSubmit() {
   font-weight: 800;
   color: var(--white);
   cursor: pointer;
-  border: 1px solid var(--purple);
+  border:
+    1px solid
+    var(--purple);
   border-radius: 14px;
   background: var(--purple);
   box-shadow:
-    0 11px 25px rgba(124, 58, 237, 0.25);
+    0 11px 25px
+    rgba(124, 58, 237, 0.25);
   transition:
     transform 180ms ease,
     background 180ms ease,
@@ -745,16 +884,27 @@ function handleSubmit() {
     box-shadow 180ms ease;
 }
 
-.submit-button:hover {
-  border-color: var(--purple-dark);
-  background: var(--purple-dark);
+.submit-button:hover:not(:disabled) {
+  border-color:
+    var(--purple-dark);
+  background:
+    var(--purple-dark);
   box-shadow:
-    0 14px 31px rgba(91, 33, 182, 0.3);
-  transform: translateY(-2px);
+    0 14px 31px
+    rgba(91, 33, 182, 0.3);
+  transform:
+    translateY(-2px);
 }
 
-.submit-button:active {
+.submit-button:active:not(:disabled) {
   transform: translateY(0);
+}
+
+.submit-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+  transform: none;
+  box-shadow: none;
 }
 
 /* =========================
@@ -763,7 +913,8 @@ function handleSubmit() {
 
 .divider {
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  grid-template-columns:
+    1fr auto 1fr;
   gap: 12px;
   align-items: center;
   margin: 27px 0 17px;
@@ -784,7 +935,7 @@ function handleSubmit() {
 }
 
 /* =========================
-   Botón iniciar sesión
+   Login
 ========================= */
 
 .login-link {
@@ -798,7 +949,9 @@ function handleSubmit() {
   font-weight: 800;
   color: var(--text-dark);
   text-decoration: none;
-  border: 1px solid #cbc5d4;
+  border:
+    1px solid
+    #cbc5d4;
   border-radius: 14px;
   background: var(--white);
   transition:
@@ -816,7 +969,7 @@ function handleSubmit() {
 }
 
 /* =========================
-   Mensaje de seguridad
+   Seguridad
 ========================= */
 
 .security-message {
@@ -855,7 +1008,9 @@ function handleSubmit() {
   right: 8%;
   width: 220px;
   height: 220px;
-  border: 48px solid rgba(124, 58, 237, 0.1);
+  border:
+    48px solid
+    rgba(124, 58, 237, 0.1);
 }
 
 .decoration-two {
@@ -863,7 +1018,9 @@ function handleSubmit() {
   left: 5%;
   width: 240px;
   height: 240px;
-  border: 54px solid rgba(9, 9, 11, 0.045);
+  border:
+    54px solid
+    rgba(9, 9, 11, 0.045);
 }
 
 .decoration-three {
@@ -871,11 +1028,13 @@ function handleSubmit() {
   left: -80px;
   width: 160px;
   height: 160px;
-  border: 1px solid rgba(124, 58, 237, 0.15);
+  border:
+    1px solid
+    rgba(124, 58, 237, 0.15);
 }
 
 /* =========================
-   Responsive tablet
+   Responsive
 ========================= */
 
 @media (max-width: 650px) {
@@ -892,10 +1051,6 @@ function handleSubmit() {
     font-size: 36px;
   }
 }
-
-/* =========================
-   Responsive móvil
-========================= */
 
 @media (max-width: 520px) {
   .register-page {

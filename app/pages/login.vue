@@ -151,7 +151,7 @@
             <span />
           </div>
 
-          <NuxtLink class="register-link" to="/registro">
+          <NuxtLink class="register-link" to="/register">
             Crear una cuenta
           </NuxtLink>
 
@@ -173,7 +173,10 @@
 
 <script setup lang="ts">
 import { useAuthStore } from "~/stores/auth"
+
 const authStore = useAuthStore()
+
+const route = useRoute()
 
 const form = reactive({
   email: "",
@@ -181,11 +184,15 @@ const form = reactive({
 })
 
 const showPassword = ref(false)
+
 const message = ref("")
+
 const isLoading = ref(false)
+
 
 useHead({
   title: "Iniciar sesión | CommunityHub",
+
   meta: [
     {
       name: "description",
@@ -194,17 +201,25 @@ useHead({
     }
   ]
 })
+onMounted(() => {
 
+  if (route.query.registered === "true") {
+
+    message.value =
+      "Cuenta creada correctamente. Ahora inicia sesión."
+  }
+})
 async function handleSubmit() {
   message.value = ""
   isLoading.value = true
-
   try {
+
     await authStore.login({
+
       email: form.email,
+
       password: form.password
     })
-
     await navigateTo("/")
   } catch (error: any) {
     message.value =
@@ -215,7 +230,6 @@ async function handleSubmit() {
   }
 }
 </script>
-
 <style scoped>
 :global(html),
 :global(body),
