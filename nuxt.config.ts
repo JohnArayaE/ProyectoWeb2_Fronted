@@ -10,6 +10,10 @@ export default defineNuxtConfig({
     }
   },
 
+  devServer: {
+    port: 3001
+  },
+
   app: {
     head: {
       title: "Proyecto Web 2",

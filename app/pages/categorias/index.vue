@@ -191,13 +191,24 @@
                     Editar
                   </button>
                   <button
+                    v-if="category.isActive"
                     class="action-button deactivate-button"
                     type="button"
-                    :disabled="!isAdmin || !category.isActive"
+                    :disabled="!isAdmin"
                     :title="!isAdmin ? 'Requiere permisos de administrador' : ''"
-                    @click="handleDeactivate(category.id)"
+                    @click="handleToggleActive(category)"
                   >
                     Desactivar
+                  </button>
+                  <button
+                    v-else
+                    class="action-button reactivate-button"
+                    type="button"
+                    :disabled="!isAdmin"
+                    :title="!isAdmin ? 'Requiere permisos de administrador' : ''"
+                    @click="handleToggleActive(category)"
+                  >
+                    Reactivar
                   </button>
                 </div>
               </template>
@@ -329,16 +340,24 @@ async function handleSaveEdit(id: string) {
   }
 }
 
-async function handleDeactivate(id: string) {
-  const confirmed = confirm(
-    "¿Seguro que querés desactivar esta categoría? Podrás reactivarla luego editándola."
-  )
+async function handleToggleActive(category: Category) {
+  if (category.isActive) {
+    const confirmed = confirm(
+      "¿Seguro que querés desactivar esta categoría? Podrás reactivarla luego."
+    )
 
-  if (!confirmed) {
-    return
+    if (!confirmed) {
+      return
+    }
   }
 
-  await store.deactivateCategory(id)
+  const result = await store.updateCategory(category.id, {
+    isActive: !category.isActive
+  })
+
+  if (!result.success) {
+    store.error = result.message
+  }
 }
 
 onMounted(async () => {
@@ -389,6 +408,9 @@ onMounted(async () => {
   --red: #b91c1c;
   --red-soft: #fdeceb;
   --red-border: #f3c7c2;
+  --green: #15803d;
+  --green-soft: #eafbf1;
+  --green-border: #bfe6cf;
 
   min-height: 100vh;
   padding: 40px 24px 60px;
@@ -821,6 +843,18 @@ onMounted(async () => {
   color: var(--white);
   border-color: var(--red);
   background: var(--red);
+}
+
+.reactivate-button {
+  color: var(--green);
+  border: 1px solid var(--green-border);
+  background: var(--white);
+}
+
+.reactivate-button:hover:not(:disabled) {
+  color: var(--white);
+  border-color: var(--green);
+  background: var(--green);
 }
 
 /* Paginación */
