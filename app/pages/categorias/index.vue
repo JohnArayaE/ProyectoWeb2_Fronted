@@ -1,5 +1,8 @@
 <template>
-  <main class="categories-page">
+  <div class="categories-page">
+    <AdminAppHeader />
+
+    <main>
     <section class="page-shell">
       <header class="page-header">
         <div class="brand">
@@ -237,7 +240,10 @@
         </section>
       </template>
     </section>
-  </main>
+    </main>
+
+    <AdminAppFooter />
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -413,7 +419,6 @@ onMounted(async () => {
   --green-border: #bfe6cf;
 
   min-height: 100vh;
-  padding: 40px 24px 60px;
   font-family: Inter, Arial, Helvetica, sans-serif;
   background:
     radial-gradient(
@@ -427,6 +432,10 @@ onMounted(async () => {
       transparent 28%
     ),
     var(--gray-background);
+}
+
+.categories-page > main {
+  padding: 40px 24px 60px;
 }
 
 .page-shell {
