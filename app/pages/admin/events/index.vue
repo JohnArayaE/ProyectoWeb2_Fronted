@@ -1,5 +1,8 @@
 <template>
-  <main class="admin-events-page">
+  <div class="admin-events-page">
+    <AdminAppHeader />
+
+    <main>
     <section class="page-shell">
       <header class="page-header">
         <div class="brand">
@@ -17,22 +20,20 @@
         </div>
       </header>
 
-      <!-- Sin token: no hay sesión iniciada -->
-      <div v-if="!hasToken" class="state-card">
+      <!-- Sin sesión iniciada -->
+      <div v-if="!authStore.isAuthenticated" class="state-card">
         <span class="state-icon" aria-hidden="true">i</span>
         <div>
           <strong>Necesitás iniciar sesión</strong>
           <p>
-            Para ver las actividades tenés que iniciar sesión con una cuenta
-            de administrador. Pegá un token válido en
-            <code>localStorage</code> (clave <code>token</code>) y recargá la
-            página.
+            Para ver las actividades tenés que iniciar sesión con tu cuenta.
+            <NuxtLink to="/login">Ir a iniciar sesión</NuxtLink>
           </p>
         </div>
       </div>
 
-      <!-- Con token pero rol distinto de admin -->
-      <div v-else-if="roleChecked && !isAdmin" class="state-card">
+      <!-- Con sesión pero rol distinto de admin -->
+      <div v-else-if="!isAdmin" class="state-card">
         <span class="state-icon" aria-hidden="true">i</span>
         <div>
           <strong>Esta sección es solo para administradores</strong>
@@ -43,7 +44,7 @@
         </div>
       </div>
 
-      <template v-else-if="isAdmin">
+      <template v-else>
         <section class="panel">
           <header class="panel-header">
             <h3>Todas las actividades</h3>
@@ -187,12 +188,22 @@
                     Editar
                   </button>
                   <button
+                    v-if="event.isActive"
                     class="action-button delete-button"
                     type="button"
                     :disabled="deletingId === event.id"
                     @click="handleDelete(event)"
                   >
                     {{ deletingId === event.id ? "Eliminando..." : "Eliminar" }}
+                  </button>
+                  <button
+                    v-else
+                    class="action-button reactivate-button"
+                    type="button"
+                    :disabled="reactivatingId === event.id"
+                    @click="handleReactivate(event)"
+                  >
+                    {{ reactivatingId === event.id ? "Reactivando..." : "Reactivar" }}
                   </button>
                 </div>
               </template>
@@ -201,13 +212,21 @@
         </section>
       </template>
     </section>
-  </main>
+    </main>
+
+    <AdminAppFooter />
+  </div>
 </template>
 
 <script setup lang="ts">
 import { useEventsStore } from "~/stores/events"
 import { useCategoriesStore } from "~/stores/categories"
+import { useAuthStore } from "~/stores/auth"
 import type { EventItem } from "~/types/event"
+
+definePageMeta({
+  middleware: "auth"
+})
 
 useHead({
   title: "Actividades | Admin | CommunityHub"
@@ -215,10 +234,9 @@ useHead({
 
 const store = useEventsStore()
 const categoriesStore = useCategoriesStore()
+const authStore = useAuthStore()
 
-const hasToken = ref(false)
-const isAdmin = ref(false)
-const roleChecked = ref(false)
+const isAdmin = computed(() => authStore.user?.role === "admin")
 
 const statusLabels: Record<string, string> = {
   draft: "Borrador",
@@ -285,6 +303,7 @@ const editingId = ref<string | null>(null)
 const editForm = reactive(emptyForm())
 const savingEdit = ref(false)
 const deletingId = ref<string | null>(null)
+const reactivatingId = ref<string | null>(null)
 
 function buildPayload(form: ReturnType<typeof emptyForm>) {
   return {
@@ -359,39 +378,24 @@ async function handleDelete(event: EventItem) {
   }
 }
 
+async function handleReactivate(event: EventItem) {
+  reactivatingId.value = event.id
+
+  const result = await store.updateEvent(event.id, { isActive: true })
+
+  reactivatingId.value = null
+
+  if (!result.success) {
+    store.error = result.message
+  }
+}
+
 async function loadEvents() {
   await store.fetchEvents({})
 }
 
 onMounted(async () => {
-  const token = localStorage.getItem("token")
-  hasToken.value = !!token
-
-  if (!token) {
-    return
-  }
-
-  const config = useRuntimeConfig()
-
-  try {
-    const response = await $fetch<{
-      success: boolean
-      data: { user: { role: string } }
-    }>("/api/auth/me", {
-      baseURL: config.public.apiBase,
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    })
-
-    isAdmin.value = response.data.user.role === "admin"
-  } catch {
-    isAdmin.value = false
-  }
-
-  roleChecked.value = true
-
-  if (!isAdmin.value) {
+  if (!authStore.isAuthenticated || !isAdmin.value) {
     return
   }
 
@@ -421,9 +425,9 @@ onMounted(async () => {
   --red-border: #f3c7c2;
   --green: #15803d;
   --green-soft: #eafbf1;
+  --green-border: #bfe6cf;
 
   min-height: 100vh;
-  padding: 40px 24px 60px;
   font-family: Inter, Arial, Helvetica, sans-serif;
   background:
     radial-gradient(
@@ -437,6 +441,10 @@ onMounted(async () => {
       transparent 28%
     ),
     var(--gray-background);
+}
+
+.admin-events-page > main {
+  padding: 40px 24px 60px;
 }
 
 .page-shell {
@@ -555,6 +563,12 @@ onMounted(async () => {
   border-radius: 5px;
   background: var(--purple-soft);
   color: var(--purple-dark);
+}
+
+.state-card a {
+  color: var(--purple-dark);
+  font-weight: 800;
+  text-decoration: underline;
 }
 
 .panel {
@@ -798,6 +812,18 @@ onMounted(async () => {
   color: var(--white);
   border-color: var(--red);
   background: var(--red);
+}
+
+.reactivate-button {
+  color: var(--green);
+  border: 1px solid var(--green-border);
+  background: var(--white);
+}
+
+.reactivate-button:hover:not(:disabled) {
+  color: var(--white);
+  border-color: var(--green);
+  background: var(--green);
 }
 
 .event-form .row-actions {

@@ -1,5 +1,8 @@
 <template>
-  <main class="activities-page">
+  <div class="activities-page">
+    <AppHeader />
+
+    <main>
     <section class="page-shell">
       <header class="page-header">
         <div class="brand">
@@ -17,15 +20,14 @@
         </div>
       </header>
 
-      <!-- Sin token: no hay sesión iniciada -->
-      <div v-if="!hasToken" class="state-card">
+      <!-- Sin sesión iniciada -->
+      <div v-if="!authStore.isAuthenticated" class="state-card">
         <span class="state-icon" aria-hidden="true">i</span>
         <div>
           <strong>Necesitás iniciar sesión</strong>
           <p>
-            Para ver las actividades tenés que iniciar sesión. Pegá un token
-            válido en <code>localStorage</code> (clave <code>token</code>) y
-            recargá la página.
+            Para ver las actividades tenés que iniciar sesión con tu cuenta.
+            <NuxtLink to="/login">Ir a iniciar sesión</NuxtLink>
           </p>
         </div>
       </div>
@@ -110,12 +112,20 @@
         </section>
       </template>
     </section>
-  </main>
+    </main>
+
+    <AppFooter />
+  </div>
 </template>
 
 <script setup lang="ts">
 import { useEventsStore } from "~/stores/events"
 import { useCategoriesStore } from "~/stores/categories"
+import { useAuthStore } from "~/stores/auth"
+
+definePageMeta({
+  middleware: "auth"
+})
 
 useHead({
   title: "Actividades | CommunityHub",
@@ -129,8 +139,7 @@ useHead({
 
 const store = useEventsStore()
 const categoriesStore = useCategoriesStore()
-
-const hasToken = ref(false)
+const authStore = useAuthStore()
 
 const page = ref(1)
 const limit = 12
@@ -185,10 +194,7 @@ async function changePage(next: number) {
 }
 
 onMounted(async () => {
-  const token = localStorage.getItem("token")
-  hasToken.value = !!token
-
-  if (!token) {
+  if (!authStore.isAuthenticated) {
     return
   }
 
@@ -221,7 +227,6 @@ onMounted(async () => {
   --green-border: #bfe6cf;
 
   min-height: 100vh;
-  padding: 40px 24px 60px;
   font-family: Inter, Arial, Helvetica, sans-serif;
   background:
     radial-gradient(
@@ -235,6 +240,10 @@ onMounted(async () => {
       transparent 28%
     ),
     var(--gray-background);
+}
+
+.activities-page > main {
+  padding: 40px 24px 60px;
 }
 
 .page-shell {
@@ -353,6 +362,12 @@ onMounted(async () => {
   border-radius: 5px;
   background: var(--purple-soft);
   color: var(--purple-dark);
+}
+
+.state-card a {
+  color: var(--purple-dark);
+  font-weight: 800;
+  text-decoration: underline;
 }
 
 .panel {

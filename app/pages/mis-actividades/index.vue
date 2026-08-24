@@ -1,5 +1,8 @@
 <template>
-  <main class="my-activities-page">
+  <div class="my-activities-page">
+    <AppHeader />
+
+    <main>
     <section class="page-shell">
       <header class="page-header">
         <div class="brand">
@@ -17,35 +20,30 @@
         </div>
       </header>
 
-      <!-- Sin token: no hay sesión iniciada -->
-      <div v-if="!hasToken" class="state-card">
+      <!-- Sin sesión iniciada -->
+      <div v-if="!authStore.isAuthenticated" class="state-card">
         <span class="state-icon" aria-hidden="true">i</span>
         <div>
           <strong>Necesitás iniciar sesión</strong>
           <p>
-            Para gestionar tus actividades tenés que iniciar sesión con una
-            cuenta de organizador. Pegá un token válido en
-            <code>localStorage</code> (clave <code>token</code>) y recargá la
-            página.
+            Para ver tus actividades tenés que iniciar sesión con tu cuenta.
+            <NuxtLink to="/login">Ir a iniciar sesión</NuxtLink>
           </p>
         </div>
       </div>
 
-      <!-- Con token pero rol distinto de organizer -->
-      <div v-else-if="roleChecked && !isOrganizer" class="state-card">
-        <span class="state-icon" aria-hidden="true">i</span>
-        <div>
-          <strong>Esta sección es solo para organizadores</strong>
+      <template v-else>
+        <!-- Usuario logueado pero sin rol de organizador -->
+        <div v-if="!isOrganizer" class="information-message">
+          <span aria-hidden="true">i</span>
           <p>
-            Tu cuenta no tiene el rol de organizador, así que no podés crear
-            ni gestionar actividades desde acá.
+            Tu cuenta no tiene el rol de organizador. Podés ver el listado de
+            tus actividades, pero crear y editar están deshabilitados.
           </p>
         </div>
-      </div>
 
-      <template v-else-if="isOrganizer">
-        <!-- Formulario de creación -->
-        <section class="panel">
+        <!-- Formulario de creación (solo organizer) -->
+        <section v-if="isOrganizer" class="panel">
           <header class="panel-header">
             <h3>Nueva actividad</h3>
           </header>
@@ -330,7 +328,13 @@
                 </div>
 
                 <div class="row-actions">
-                  <button class="action-button edit-button" type="button" @click="startEdit(event)">
+                  <button
+                    class="action-button edit-button"
+                    type="button"
+                    :disabled="!isOrganizer"
+                    :title="!isOrganizer ? 'Requiere rol de organizador' : ''"
+                    @click="startEdit(event)"
+                  >
                     Editar
                   </button>
                 </div>
@@ -340,13 +344,21 @@
         </section>
       </template>
     </section>
-  </main>
+    </main>
+
+    <AppFooter />
+  </div>
 </template>
 
 <script setup lang="ts">
 import { useEventsStore } from "~/stores/events"
 import { useCategoriesStore } from "~/stores/categories"
+import { useAuthStore } from "~/stores/auth"
 import type { EventItem } from "~/types/event"
+
+definePageMeta({
+  middleware: "auth"
+})
 
 useHead({
   title: "Mis actividades | CommunityHub"
@@ -354,10 +366,9 @@ useHead({
 
 const store = useEventsStore()
 const categoriesStore = useCategoriesStore()
+const authStore = useAuthStore()
 
-const hasToken = ref(false)
-const isOrganizer = ref(false)
-const roleChecked = ref(false)
+const isOrganizer = computed(() => authStore.user?.role === "organizer")
 
 const statusLabels: Record<string, string> = {
   draft: "Borrador",
@@ -504,34 +515,7 @@ async function loadEvents() {
 }
 
 onMounted(async () => {
-  const token = localStorage.getItem("token")
-  hasToken.value = !!token
-
-  if (!token) {
-    return
-  }
-
-  const config = useRuntimeConfig()
-
-  try {
-    const response = await $fetch<{
-      success: boolean
-      data: { user: { role: string } }
-    }>("/api/auth/me", {
-      baseURL: config.public.apiBase,
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    })
-
-    isOrganizer.value = response.data.user.role === "organizer"
-  } catch {
-    isOrganizer.value = false
-  }
-
-  roleChecked.value = true
-
-  if (!isOrganizer.value) {
+  if (!authStore.isAuthenticated) {
     return
   }
 
@@ -563,7 +547,6 @@ onMounted(async () => {
   --green-soft: #eafbf1;
 
   min-height: 100vh;
-  padding: 40px 24px 60px;
   font-family: Inter, Arial, Helvetica, sans-serif;
   background:
     radial-gradient(
@@ -577,6 +560,10 @@ onMounted(async () => {
       transparent 28%
     ),
     var(--gray-background);
+}
+
+.my-activities-page > main {
+  padding: 40px 24px 60px;
 }
 
 .page-shell {
@@ -695,6 +682,12 @@ onMounted(async () => {
   border-radius: 5px;
   background: var(--purple-soft);
   color: var(--purple-dark);
+}
+
+.state-card a {
+  color: var(--purple-dark);
+  font-weight: 800;
+  text-decoration: underline;
 }
 
 .panel {

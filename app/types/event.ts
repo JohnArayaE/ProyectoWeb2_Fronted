@@ -63,4 +63,5 @@ export interface UpdateEventPayload {
   capacity?: number
   imageUrl?: string
   status?: EventStatus
+  isActive?: boolean
 }

@@ -1,5 +1,8 @@
 <template>
-  <main class="activity-detail-page">
+  <div class="activity-detail-page">
+    <AppHeader />
+
+    <main>
     <section class="page-shell">
       <header class="page-header">
         <div class="brand">
@@ -15,15 +18,14 @@
         </NuxtLink>
       </header>
 
-      <!-- Sin token: no hay sesión iniciada -->
-      <div v-if="!hasToken" class="state-card">
+      <!-- Sin sesión iniciada -->
+      <div v-if="!authStore.isAuthenticated" class="state-card">
         <span class="state-icon" aria-hidden="true">i</span>
         <div>
           <strong>Necesitás iniciar sesión</strong>
           <p>
-            Para ver esta actividad tenés que iniciar sesión. Pegá un token
-            válido en <code>localStorage</code> (clave <code>token</code>) y
-            recargá la página.
+            Para ver esta actividad tenés que iniciar sesión con tu cuenta.
+            <NuxtLink to="/login">Ir a iniciar sesión</NuxtLink>
           </p>
         </div>
       </div>
@@ -118,20 +120,28 @@
         </section>
       </template>
     </section>
-  </main>
+    </main>
+
+    <AppFooter />
+  </div>
 </template>
 
 <script setup lang="ts">
 import { useEventsStore } from "~/stores/events"
 import { useCategoriesStore } from "~/stores/categories"
+import { useAuthStore } from "~/stores/auth"
+
+definePageMeta({
+  middleware: "auth"
+})
 
 const route = useRoute()
 const store = useEventsStore()
 const categoriesStore = useCategoriesStore()
+const authStore = useAuthStore()
 
-const hasToken = ref(false)
-const currentUserId = ref<string | null>(null)
-const currentUserRole = ref<string | null>(null)
+const currentUserId = computed(() => authStore.user?.id ?? null)
+const currentUserRole = computed(() => authStore.user?.role ?? null)
 
 const statusLabels: Record<string, string> = {
   draft: "Borrador",
@@ -196,31 +206,8 @@ useHead(() => ({
 }))
 
 onMounted(async () => {
-  const token = localStorage.getItem("token")
-  hasToken.value = !!token
-
-  if (!token) {
+  if (!authStore.isAuthenticated) {
     return
-  }
-
-  const config = useRuntimeConfig()
-
-  try {
-    const response = await $fetch<{
-      success: boolean
-      data: { user: { id: string, role: string } }
-    }>("/api/auth/me", {
-      baseURL: config.public.apiBase,
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    })
-
-    currentUserId.value = response.data.user.id
-    currentUserRole.value = response.data.user.role
-  } catch {
-    currentUserId.value = null
-    currentUserRole.value = null
   }
 
   await categoriesStore.fetchCategories({ limit: 100, includeInactive: true })
@@ -251,7 +238,6 @@ onMounted(async () => {
   --green-soft: #eafbf1;
 
   min-height: 100vh;
-  padding: 40px 24px 60px;
   font-family: Inter, Arial, Helvetica, sans-serif;
   background:
     radial-gradient(
@@ -265,6 +251,10 @@ onMounted(async () => {
       transparent 28%
     ),
     var(--gray-background);
+}
+
+.activity-detail-page > main {
+  padding: 40px 24px 60px;
 }
 
 .page-shell {
@@ -371,6 +361,12 @@ onMounted(async () => {
   border-radius: 5px;
   background: var(--purple-soft);
   color: var(--purple-dark);
+}
+
+.state-card a {
+  color: var(--purple-dark);
+  font-weight: 800;
+  text-decoration: underline;
 }
 
 .error-message {
