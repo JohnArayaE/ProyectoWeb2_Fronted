@@ -1,7 +1,14 @@
 export default defineNuxtConfig({
   modules: [
-    "@vite-pwa/nuxt"
+    "@vite-pwa/nuxt",
+    "@pinia/nuxt"
   ],
+
+  runtimeConfig: {
+    public: {
+      apiBase: "http://localhost:4000"
+    }
+  },
 
   app: {
     head: {
