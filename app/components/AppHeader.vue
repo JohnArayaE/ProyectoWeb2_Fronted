@@ -224,28 +224,49 @@ const authStore = useAuthStore()
 const mobileMenuOpen = ref(false)
 const isLoggingOut = ref(false)
 
-const navigationItems: NavigationItem[] = [
-  {
-    label: "Inicio",
-    to: "/",
-    icon: "⌂"
-  },
-  {
-    label: "Actividades",
-    to: "/actividades",
-    icon: "⌕"
-  },
-  {
-    label: "Mis inscripciones",
-    to: "/registrations",
-    icon: "✓"
-  },
-  {
-    label: "Favoritos",
-    to: "/favorites",
-    icon: "★"
+const isOrganizer = computed(() => authStore.user?.role === "organizer")
+
+const homeTo = computed(() => (isOrganizer.value ? "/organizer" : "/"))
+
+const navigationItems = computed<NavigationItem[]>(() => {
+  const items: NavigationItem[] = [
+    {
+      label: "Inicio",
+      to: homeTo.value,
+      icon: "⌂"
+    },
+    {
+      label: "Actividades",
+      to: "/actividades",
+      icon: "⌕"
+    }
+  ]
+
+  if (isOrganizer.value) {
+    items.push({
+      label: "Mis actividades",
+      to: "/mis-actividades",
+      icon: "▤"
+    })
+
+    return items
   }
-]
+
+  items.push(
+    {
+      label: "Mis inscripciones",
+      to: "/registrations",
+      icon: "✓"
+    },
+    {
+      label: "Favoritos",
+      to: "/favorites",
+      icon: "★"
+    }
+  )
+
+  return items
+})
 
 const userInitial = computed(() => {
   return (

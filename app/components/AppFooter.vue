@@ -129,36 +129,61 @@
 </template>
 
 <script setup lang="ts">
+import { useAuthStore } from "~/stores/auth"
+
 type NavigationItem = {
   label: string
   to: string
   icon: string
 }
 
+const authStore = useAuthStore()
+
 const currentYear = new Date().getFullYear()
 
-const navigationItems: NavigationItem[] = [
-  {
-    label: "Inicio",
-    to: "/",
-    icon: "⌂"
-  },
-  {
-    label: "Actividades",
-    to: "/actividades",
-    icon: "⌕"
-  },
-  {
-    label: "Mis inscripciones",
-    to: "/registrations",
-    icon: "✓"
-  },
-  {
-    label: "Favoritos",
-    to: "/favorites",
-    icon: "★"
+const isOrganizer = computed(() => authStore.user?.role === "organizer")
+
+const homeTo = computed(() => (isOrganizer.value ? "/organizer" : "/"))
+
+const navigationItems = computed<NavigationItem[]>(() => {
+  const items: NavigationItem[] = [
+    {
+      label: "Inicio",
+      to: homeTo.value,
+      icon: "⌂"
+    },
+    {
+      label: "Actividades",
+      to: "/actividades",
+      icon: "⌕"
+    }
+  ]
+
+  if (isOrganizer.value) {
+    items.push({
+      label: "Mis actividades",
+      to: "/mis-actividades",
+      icon: "▤"
+    })
+
+    return items
   }
-]
+
+  items.push(
+    {
+      label: "Mis inscripciones",
+      to: "/registrations",
+      icon: "✓"
+    },
+    {
+      label: "Favoritos",
+      to: "/favorites",
+      icon: "★"
+    }
+  )
+
+  return items
+})
 </script>
 
 <style scoped>
