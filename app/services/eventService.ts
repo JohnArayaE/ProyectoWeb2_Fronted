@@ -1,0 +1,185 @@
+import type {
+  CreateEventPayload,
+  EventItem,
+  EventPagination,
+  ListEventsParams,
+  UpdateEventPayload
+} from "~/types/event"
+
+export class EventServiceError extends Error {
+  status: number
+
+  constructor(status: number, message: string) {
+    super(message)
+    this.status = status
+    this.name = "EventServiceError"
+  }
+}
+
+interface ApiSuccess<T> {
+  success: true
+  message?: string
+  data: T
+}
+
+interface ListEventsData {
+  events: EventItem[]
+  pagination: EventPagination
+}
+
+interface SingleEventData {
+  event: EventItem
+}
+
+function authHeaders(): Record<string, string> {
+  const token = localStorage.getItem("token")
+
+  if (!token) {
+    throw new EventServiceError(
+      401,
+      "Necesitás iniciar sesión para continuar."
+    )
+  }
+
+  return {
+    Authorization: `Bearer ${token}`
+  }
+}
+
+function defaultMessageFor(status: number): string {
+  if (status === 401) {
+    return "Tu sesión expiró o no iniciaste sesión. Volvé a iniciar sesión."
+  }
+
+  if (status === 403) {
+    return "No tenés permisos para realizar esta acción."
+  }
+
+  if (status === 404) {
+    return "La actividad no existe o no está disponible."
+  }
+
+  if (status === 400) {
+    return "Los datos ingresados no son válidos."
+  }
+
+  return "Ocurrió un error al comunicarse con el servidor."
+}
+
+function normalizeError(error: unknown): EventServiceError {
+  if (error instanceof EventServiceError) {
+    return error
+  }
+
+  const fetchError = error as {
+    response?: { status?: number, _data?: { message?: string } }
+  }
+
+  const status = fetchError.response?.status ?? 500
+  const message =
+    fetchError.response?._data?.message ?? defaultMessageFor(status)
+
+  return new EventServiceError(status, message)
+}
+
+export async function listEvents(
+  params: ListEventsParams = {}
+): Promise<ListEventsData> {
+  const config = useRuntimeConfig()
+
+  try {
+    const response = await $fetch<ApiSuccess<ListEventsData>>(
+      "/api/events",
+      {
+        baseURL: config.public.apiBase,
+        headers: authHeaders(),
+        query: {
+          page: params.page,
+          limit: params.limit,
+          mine: params.mine
+        }
+      }
+    )
+
+    return response.data
+  } catch (error) {
+    throw normalizeError(error)
+  }
+}
+
+export async function getEvent(id: string): Promise<EventItem> {
+  const config = useRuntimeConfig()
+
+  try {
+    const response = await $fetch<ApiSuccess<SingleEventData>>(
+      `/api/events/${id}`,
+      {
+        baseURL: config.public.apiBase,
+        headers: authHeaders()
+      }
+    )
+
+    return response.data.event
+  } catch (error) {
+    throw normalizeError(error)
+  }
+}
+
+export async function createEvent(
+  data: CreateEventPayload
+): Promise<EventItem> {
+  const config = useRuntimeConfig()
+
+  try {
+    const response = await $fetch<ApiSuccess<SingleEventData>>(
+      "/api/events",
+      {
+        method: "POST",
+        baseURL: config.public.apiBase,
+        headers: authHeaders(),
+        body: data
+      }
+    )
+
+    return response.data.event
+  } catch (error) {
+    throw normalizeError(error)
+  }
+}
+
+export async function updateEvent(
+  id: string,
+  data: UpdateEventPayload
+): Promise<EventItem> {
+  const config = useRuntimeConfig()
+
+  try {
+    const response = await $fetch<ApiSuccess<SingleEventData>>(
+      `/api/events/${id}`,
+      {
+        method: "PUT",
+        baseURL: config.public.apiBase,
+        headers: authHeaders(),
+        body: data
+      }
+    )
+
+    return response.data.event
+  } catch (error) {
+    throw normalizeError(error)
+  }
+}
+
+export async function deleteEvent(id: string): Promise<void> {
+  const config = useRuntimeConfig()
+
+  try {
+    await $fetch(`/api/events/${id}`, {
+      method: "DELETE",
+      baseURL: config.public.apiBase,
+      headers: authHeaders()
+    })
+  } catch (error) {
+    throw normalizeError(error)
+  }
+}
