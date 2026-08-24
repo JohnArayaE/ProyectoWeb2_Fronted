@@ -10,10 +10,13 @@ export default defineNuxtConfig({
     }
   },
 
+  devServer: {
+    port: 3001
+  },
+
   app: {
     head: {
       title: "Proyecto Web 2",
-
       meta: [
         {
           name: "description",
@@ -24,7 +27,6 @@ export default defineNuxtConfig({
           content: "#ffffff"
         }
       ],
-
       link: [
         {
           rel: "icon",
@@ -40,24 +42,16 @@ export default defineNuxtConfig({
 
   pwa: {
     registerType: "autoUpdate",
-
     manifest: {
       id: "/",
-
       name: "Proyecto Web 2",
       short_name: "ProyectoWeb2",
-
-      description:
-        "Aplicación web progresiva de Proyecto Web 2",
-
+      description: "Aplicación web progresiva de Proyecto Web 2",
       theme_color: "#ffffff",
       background_color: "#ffffff",
-
       display: "standalone",
-
       start_url: "/",
       scope: "/",
-
       icons: [
         {
           src: "/pwa-192x192.png",
@@ -78,7 +72,6 @@ export default defineNuxtConfig({
         }
       ]
     },
-
     workbox: {
       navigateFallback: "/"
     }
