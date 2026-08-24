@@ -20,23 +20,21 @@
         </div>
       </header>
 
-      <!-- Sin token: no hay sesión iniciada -->
-      <div v-if="!hasToken" class="state-card">
+      <!-- Sin sesión iniciada -->
+      <div v-if="!authStore.isAuthenticated" class="state-card">
         <span class="state-icon" aria-hidden="true">i</span>
         <div>
           <strong>Necesitás iniciar sesión</strong>
           <p>
-            Para ver las categorías tenés que iniciar sesión con una cuenta
-            de administrador. Pegá un token válido en
-            <code>localStorage</code> (clave <code>token</code>) y recargá la
-            página.
+            Para ver las categorías tenés que iniciar sesión con tu cuenta.
+            <NuxtLink to="/login">Ir a iniciar sesión</NuxtLink>
           </p>
         </div>
       </div>
 
       <template v-else>
         <!-- Usuario logueado pero sin permisos de administrador -->
-        <div v-if="roleChecked && !isAdmin" class="information-message">
+        <div v-if="!isAdmin" class="information-message">
           <span aria-hidden="true">i</span>
           <p>
             Tu cuenta no tiene permisos de administrador. Podés ver el
@@ -248,7 +246,12 @@
 
 <script setup lang="ts">
 import { useCategoriesStore } from "~/stores/categories"
+import { useAuthStore } from "~/stores/auth"
 import type { Category } from "~/types/category"
+
+definePageMeta({
+  middleware: "auth"
+})
 
 useHead({
   title: "Categorías | CommunityHub",
@@ -260,12 +263,10 @@ useHead({
   ]
 })
 
-const config = useRuntimeConfig()
 const store = useCategoriesStore()
+const authStore = useAuthStore()
 
-const hasToken = ref(false)
-const isAdmin = ref(false)
-const roleChecked = ref(false)
+const isAdmin = computed(() => authStore.user?.role === "admin")
 
 const page = ref(1)
 const limit = 20
@@ -367,30 +368,10 @@ async function handleToggleActive(category: Category) {
 }
 
 onMounted(async () => {
-  const token = localStorage.getItem("token")
-  hasToken.value = !!token
-
-  if (!token) {
+  if (!authStore.isAuthenticated) {
     return
   }
 
-  try {
-    const response = await $fetch<{
-      success: boolean
-      data: { user: { role: string } }
-    }>("/api/auth/me", {
-      baseURL: config.public.apiBase,
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    })
-
-    isAdmin.value = response.data.user.role === "admin"
-  } catch {
-    isAdmin.value = false
-  }
-
-  roleChecked.value = true
   await loadCategories()
 })
 </script>
@@ -550,12 +531,10 @@ onMounted(async () => {
   color: var(--gray-text);
 }
 
-.state-card code {
-  padding: 1px 5px;
-  font-size: 12px;
-  border-radius: 5px;
-  background: var(--purple-soft);
+.state-card a {
   color: var(--purple-dark);
+  font-weight: 800;
+  text-decoration: underline;
 }
 
 .panel {

@@ -232,7 +232,7 @@ const navigationItems: NavigationItem[] = [
   },
   {
     label: "Actividades",
-    to: "/activities",
+    to: "/actividades",
     icon: "⌕"
   },
   {

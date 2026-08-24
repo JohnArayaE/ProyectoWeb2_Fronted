@@ -31,8 +31,16 @@ interface SingleCategoryData {
   category: Category
 }
 
+function getAuthToken(): string {
+  if (!import.meta.client) {
+    return ""
+  }
+
+  return localStorage.getItem("auth_token") || ""
+}
+
 function authHeaders(): Record<string, string> {
-  const token = localStorage.getItem("token")
+  const token = getAuthToken()
 
   if (!token) {
     throw new CategoryServiceError(

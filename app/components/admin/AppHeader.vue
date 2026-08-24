@@ -241,13 +241,13 @@ const navigationItems: NavigationItem[] = [
 
   {
     label: "Actividades",
-    to: "/admin/activities",
+    to: "/admin/events",
     icon: "⌕"
   },
 
   {
     label: "Categorías",
-    to: "/admin/categories",
+    to: "/categorias",
     icon: "◆"
   },
 
