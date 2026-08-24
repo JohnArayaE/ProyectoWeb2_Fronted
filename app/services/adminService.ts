@@ -1,21 +1,35 @@
 import type { AuthUser } from "~/types/auth"
 
+export interface AdminUser extends AuthUser {}
+
 interface UsersResponse {
   success: boolean
+  message: string
   data: {
-    users: AuthUser[]
+    users: AdminUser[]
   }
 }
 
+interface UserResponse {
+  success: boolean
+  message?: string
+  data: {
+    user: AdminUser
+  }
+}
+
+function getAuthToken(): string {
+  if (!import.meta.client) {
+    return ""
+  }
+
+  return localStorage.getItem("auth_token") || ""
+}
+
 export const adminService = {
-
   async getUsers(): Promise<UsersResponse> {
-
     const config = useRuntimeConfig()
-
-    const token = localStorage.getItem(
-      "auth_token"
-    )
+    const token = getAuthToken()
 
     return await $fetch<UsersResponse>(
       `${config.public.apiBase}/api/users`,
@@ -26,7 +40,64 @@ export const adminService = {
         }
       }
     )
+  },
 
+  async getUserById(
+    userId: string
+  ): Promise<UserResponse> {
+    const config = useRuntimeConfig()
+    const token = getAuthToken()
+
+    return await $fetch<UserResponse>(
+      `${config.public.apiBase}/api/users/${userId}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    )
+  },
+
+  async updateUserRole(
+    userId: string,
+    role: "admin" | "organizer" | "user"
+  ): Promise<UserResponse> {
+    const config = useRuntimeConfig()
+    const token = getAuthToken()
+
+    return await $fetch<UserResponse>(
+      `${config.public.apiBase}/api/users/${userId}`,
+      {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
+        body: {
+          role
+        }
+      }
+    )
+  },
+
+  async updateUserStatus(
+    userId: string,
+    isActive: boolean
+  ): Promise<UserResponse> {
+    const config = useRuntimeConfig()
+    const token = getAuthToken()
+
+    return await $fetch<UserResponse>(
+      `${config.public.apiBase}/api/users/${userId}`,
+      {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
+        body: {
+          isActive
+        }
+      }
+    )
   }
-
 }
