@@ -136,6 +136,22 @@
             :alt="event.title"
             class="event-image"
           >
+
+          <div v-if="!isOrganizer" class="registration-section">
+            <button
+              type="button"
+              class="registration-button"
+              :class="{ 'is-registered': registrationsStore.isRegistered(event.id) }"
+              :disabled="registrationButtonDisabled"
+              @click="toggleRegistration"
+            >
+              {{ registrationButtonLabel }}
+            </button>
+
+            <p v-if="registrationError" class="registration-error">
+              {{ registrationError }}
+            </p>
+          </div>
         </section>
       </template>
     </section>
@@ -150,6 +166,7 @@ import { useEventsStore } from "~/stores/events"
 import { useCategoriesStore } from "~/stores/categories"
 import { useAuthStore } from "~/stores/auth"
 import { useFavoritesStore } from "~/stores/favorites"
+import { useRegistrationsStore } from "~/stores/registrations"
 
 definePageMeta({
   middleware: "auth"
@@ -160,6 +177,7 @@ const store = useEventsStore()
 const categoriesStore = useCategoriesStore()
 const authStore = useAuthStore()
 const favoritesStore = useFavoritesStore()
+const registrationsStore = useRegistrationsStore()
 
 const togglingFavorite = ref(false)
 
@@ -171,6 +189,61 @@ async function toggleFavorite() {
   togglingFavorite.value = true
   await favoritesStore.toggleFavorite(event.value.id)
   togglingFavorite.value = false
+}
+
+const togglingRegistration = ref(false)
+const registrationError = ref("")
+const fullCapacity = ref(false)
+
+const registrationButtonLabel = computed(() => {
+  if (!event.value) {
+    return "Inscribirme"
+  }
+
+  if (registrationsStore.isRegistered(event.value.id)) {
+    return "Cancelar inscripción"
+  }
+
+  if (fullCapacity.value) {
+    return "Sin cupo disponible"
+  }
+
+  return "Inscribirme"
+})
+
+const registrationButtonDisabled = computed(() => {
+  if (togglingRegistration.value) {
+    return true
+  }
+
+  if (!event.value) {
+    return true
+  }
+
+  return !registrationsStore.isRegistered(event.value.id) && fullCapacity.value
+})
+
+async function toggleRegistration() {
+  if (togglingRegistration.value || !event.value) {
+    return
+  }
+
+  togglingRegistration.value = true
+  registrationError.value = ""
+
+  const result = await registrationsStore.toggleRegistration(event.value.id)
+
+  if (result.success) {
+    fullCapacity.value = false
+  } else {
+    registrationError.value = result.message
+
+    if (result.status === 409 && /capacidad|cupo/i.test(result.message)) {
+      fullCapacity.value = true
+    }
+  }
+
+  togglingRegistration.value = false
 }
 
 const currentUserId = computed(() => authStore.user?.id ?? null)
@@ -253,7 +326,8 @@ onMounted(async () => {
 
   await Promise.all([
     store.fetchEvent(route.params.id as string),
-    favoritesStore.fetchFavorites()
+    favoritesStore.fetchFavorites(),
+    registrationsStore.fetchMyRegistrations()
   ])
 })
 </script>
@@ -577,5 +651,62 @@ onMounted(async () => {
   margin-top: 8px;
   object-fit: cover;
   border-radius: 16px;
+}
+
+.registration-section {
+  display: grid;
+  gap: 8px;
+  padding-top: 20px;
+  margin-top: 20px;
+  border-top: 1px solid var(--gray-border);
+}
+
+.registration-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  min-height: 44px;
+  padding: 10px 20px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--white);
+  cursor: pointer;
+  border: 1px solid var(--purple);
+  border-radius: 12px;
+  background: var(--purple);
+  transition:
+    background 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease;
+}
+
+.registration-button:hover:not(:disabled) {
+  background: var(--purple-dark);
+}
+
+.registration-button.is-registered {
+  color: var(--red);
+  border-color: var(--red-border);
+  background: var(--red-soft);
+}
+
+.registration-button.is-registered:hover:not(:disabled) {
+  border-color: var(--red);
+  background: var(--red);
+  color: var(--white);
+}
+
+.registration-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.registration-error {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--red);
 }
 </style>

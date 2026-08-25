@@ -58,55 +58,77 @@
           </div>
 
           <div v-else class="event-grid">
-            <NuxtLink
+            <div
               v-for="event in store.events"
               :key="event.id"
-              :to="`/actividades/${event.id}`"
               class="event-card"
             >
-              <div class="event-card-top">
-                <span class="category-pill">
-                  {{ categoryName(event.category) }}
-                </span>
-
-                <div class="event-card-top-right">
-                  <span
-                    class="status-pill"
-                    :class="`is-${event.status}`"
-                  >
-                    {{ statusLabel(event.status) }}
+              <NuxtLink
+                :to="`/actividades/${event.id}`"
+                class="event-card-link"
+              >
+                <div class="event-card-top">
+                  <span class="category-pill">
+                    {{ categoryName(event.category) }}
                   </span>
 
-                  <button
-                    v-if="!isOrganizer"
-                    type="button"
-                    class="favorite-toggle"
-                    :class="{ 'is-active': favoritesStore.isFavorite(event.id) }"
-                    :disabled="togglingFavorites[event.id]"
-                    :aria-pressed="favoritesStore.isFavorite(event.id)"
-                    :aria-label="
-                      favoritesStore.isFavorite(event.id)
-                        ? 'Quitar de favoritos'
-                        : 'Agregar a favoritos'
-                    "
-                    @click.stop.prevent="toggleFavorite(event.id)"
-                  >
-                    <span aria-hidden="true">
-                      {{ favoritesStore.isFavorite(event.id) ? "♥" : "♡" }}
+                  <div class="event-card-top-right">
+                    <span
+                      class="status-pill"
+                      :class="`is-${event.status}`"
+                    >
+                      {{ statusLabel(event.status) }}
                     </span>
-                  </button>
+
+                    <button
+                      v-if="!isOrganizer"
+                      type="button"
+                      class="favorite-toggle"
+                      :class="{ 'is-active': favoritesStore.isFavorite(event.id) }"
+                      :disabled="togglingFavorites[event.id]"
+                      :aria-pressed="favoritesStore.isFavorite(event.id)"
+                      :aria-label="
+                        favoritesStore.isFavorite(event.id)
+                          ? 'Quitar de favoritos'
+                          : 'Agregar a favoritos'
+                      "
+                      @click.stop.prevent="toggleFavorite(event.id)"
+                    >
+                      <span aria-hidden="true">
+                        {{ favoritesStore.isFavorite(event.id) ? "♥" : "♡" }}
+                      </span>
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              <h4>{{ event.title }}</h4>
-              <p class="event-description">{{ event.description }}</p>
+                <h4>{{ event.title }}</h4>
+                <p class="event-description">{{ event.description }}</p>
 
-              <div class="event-meta">
-                <span>📅 {{ formatDate(event.startDate) }}</span>
-                <span>📍 {{ modalityLabel(event.modality) }}</span>
-                <span>👥 {{ event.capacity }} cupos</span>
+                <div class="event-meta">
+                  <span>📅 {{ formatDate(event.startDate) }}</span>
+                  <span>📍 {{ modalityLabel(event.modality) }}</span>
+                  <span>👥 {{ event.capacity }} cupos</span>
+                </div>
+              </NuxtLink>
+
+              <div v-if="!isOrganizer" class="event-card-actions">
+                <button
+                  type="button"
+                  class="registration-button"
+                  :class="{
+                    'is-registered': registrationsStore.isRegistered(event.id)
+                  }"
+                  :disabled="registrationButtonDisabled(event.id)"
+                  @click="toggleRegistration(event.id)"
+                >
+                  {{ registrationButtonLabel(event.id) }}
+                </button>
+
+                <p v-if="registrationErrors[event.id]" class="registration-error">
+                  {{ registrationErrors[event.id] }}
+                </p>
               </div>
-            </NuxtLink>
+            </div>
           </div>
 
           <div
@@ -145,6 +167,7 @@ import { useEventsStore } from "~/stores/events"
 import { useCategoriesStore } from "~/stores/categories"
 import { useAuthStore } from "~/stores/auth"
 import { useFavoritesStore } from "~/stores/favorites"
+import { useRegistrationsStore } from "~/stores/registrations"
 
 definePageMeta({
   middleware: "auth"
@@ -164,6 +187,7 @@ const store = useEventsStore()
 const categoriesStore = useCategoriesStore()
 const authStore = useAuthStore()
 const favoritesStore = useFavoritesStore()
+const registrationsStore = useRegistrationsStore()
 
 const isOrganizer = computed(() => authStore.user?.role === "organizer")
 
@@ -180,6 +204,53 @@ async function toggleFavorite(eventId: string) {
   togglingFavorites[eventId] = true
   await favoritesStore.toggleFavorite(eventId)
   togglingFavorites[eventId] = false
+}
+
+const togglingRegistrations = reactive<Record<string, boolean>>({})
+const registrationErrors = reactive<Record<string, string>>({})
+const fullCapacityEvents = reactive<Record<string, boolean>>({})
+
+function registrationButtonLabel(eventId: string) {
+  if (registrationsStore.isRegistered(eventId)) {
+    return "Cancelar inscripción"
+  }
+
+  if (fullCapacityEvents[eventId]) {
+    return "Sin cupo disponible"
+  }
+
+  return "Inscribirme"
+}
+
+function registrationButtonDisabled(eventId: string) {
+  if (togglingRegistrations[eventId]) {
+    return true
+  }
+
+  return !registrationsStore.isRegistered(eventId) && !!fullCapacityEvents[eventId]
+}
+
+async function toggleRegistration(eventId: string) {
+  if (togglingRegistrations[eventId]) {
+    return
+  }
+
+  togglingRegistrations[eventId] = true
+  registrationErrors[eventId] = ""
+
+  const result = await registrationsStore.toggleRegistration(eventId)
+
+  if (result.success) {
+    fullCapacityEvents[eventId] = false
+  } else {
+    registrationErrors[eventId] = result.message
+
+    if (result.status === 409 && /capacidad|cupo/i.test(result.message)) {
+      fullCapacityEvents[eventId] = true
+    }
+  }
+
+  togglingRegistrations[eventId] = false
 }
 
 const statusLabels: Record<string, string> = {
@@ -243,7 +314,11 @@ onMounted(async () => {
     return
   }
 
-  await Promise.all([loadEvents(), favoritesStore.fetchFavorites()])
+  await Promise.all([
+    loadEvents(),
+    favoritesStore.fetchFavorites(),
+    registrationsStore.fetchMyRegistrations()
+  ])
 })
 </script>
 
@@ -494,8 +569,6 @@ onMounted(async () => {
   display: grid;
   gap: 10px;
   padding: 20px;
-  color: inherit;
-  text-decoration: none;
   border: 1px solid var(--gray-border);
   border-radius: 16px;
   background: var(--white);
@@ -509,6 +582,69 @@ onMounted(async () => {
   border-color: var(--purple-light);
   box-shadow: 0 16px 30px rgba(124, 58, 237, 0.16);
   transform: translateY(-3px);
+}
+
+.event-card-link {
+  display: grid;
+  gap: 10px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.event-card-actions {
+  display: grid;
+  gap: 8px;
+  padding-top: 10px;
+  margin-top: 2px;
+  border-top: 1px solid var(--gray-border);
+}
+
+.registration-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 8px 14px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--white);
+  cursor: pointer;
+  border: 1px solid var(--purple);
+  border-radius: 10px;
+  background: var(--purple);
+  transition:
+    background 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease;
+}
+
+.registration-button:hover:not(:disabled) {
+  background: var(--purple-dark);
+}
+
+.registration-button.is-registered {
+  color: var(--red);
+  border-color: var(--red-border);
+  background: var(--red-soft);
+}
+
+.registration-button.is-registered:hover:not(:disabled) {
+  border-color: var(--red);
+  background: var(--red);
+  color: var(--white);
+}
+
+.registration-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.registration-error {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--red);
 }
 
 .event-card-top {

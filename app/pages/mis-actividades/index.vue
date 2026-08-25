@@ -337,6 +337,59 @@
                   >
                     Editar
                   </button>
+
+                  <button
+                    class="action-button participants-button"
+                    type="button"
+                    @click="toggleParticipants(event.id)"
+                  >
+                    {{ expandedParticipantsId === event.id ? "Ocultar participantes" : "Ver participantes" }}
+                  </button>
+                </div>
+
+                <div v-if="expandedParticipantsId === event.id" class="participants-section">
+                  <div v-if="participantsLoading[event.id]" class="loading-row">
+                    Cargando participantes...
+                  </div>
+
+                  <div v-else-if="participantsErrors[event.id]" class="error-message">
+                    <span aria-hidden="true">!</span>
+                    <p>{{ participantsErrors[event.id] }}</p>
+                  </div>
+
+                  <div
+                    v-else-if="!(participantsByEvent[event.id]?.length)"
+                    class="empty-row"
+                  >
+                    Todavía no hay inscriptos en esta actividad.
+                  </div>
+
+                  <table v-else class="participants-table">
+                    <thead>
+                      <tr>
+                        <th>Nombre</th>
+                        <th>Email</th>
+                        <th>Estado</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr
+                        v-for="participant in participantsByEvent[event.id]"
+                        :key="participant.id"
+                      >
+                        <td>{{ participantName(participant) }}</td>
+                        <td>{{ participantEmail(participant) }}</td>
+                        <td>
+                          <span
+                            class="status-pill"
+                            :class="`is-${participant.status}`"
+                          >
+                            {{ participantStatusLabel(participant.status) }}
+                          </span>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
               </template>
             </article>
@@ -355,6 +408,11 @@ import { useEventsStore } from "~/stores/events"
 import { useCategoriesStore } from "~/stores/categories"
 import { useAuthStore } from "~/stores/auth"
 import type { EventItem } from "~/types/event"
+import {
+  RegistrationServiceError,
+  getEventParticipants
+} from "~/services/registrationService"
+import type { RegistrationParticipant, RegistrationStatus } from "~/types/registration"
 
 definePageMeta({
   middleware: "auth"
@@ -512,6 +570,57 @@ async function handleSaveEdit(id: string) {
 
 async function loadEvents() {
   await store.fetchEvents({ mine: true })
+}
+
+const expandedParticipantsId = ref<string | null>(null)
+const participantsByEvent = reactive<Record<string, RegistrationParticipant[]>>({})
+const participantsLoading = reactive<Record<string, boolean>>({})
+const participantsErrors = reactive<Record<string, string>>({})
+
+const participantStatusLabels: Record<RegistrationStatus, string> = {
+  registered: "Inscripto",
+  cancelled: "Cancelada",
+  attended: "Asistió"
+}
+
+function participantStatusLabel(status: RegistrationStatus) {
+  return participantStatusLabels[status] ?? status
+}
+
+function participantName(participant: RegistrationParticipant) {
+  if (typeof participant.user === "string") {
+    return "Usuario"
+  }
+
+  return `${participant.user.firstName} ${participant.user.lastName}`
+}
+
+function participantEmail(participant: RegistrationParticipant) {
+  if (typeof participant.user === "string") {
+    return "—"
+  }
+
+  return participant.user.email
+}
+
+async function toggleParticipants(eventId: string) {
+  if (expandedParticipantsId.value === eventId) {
+    expandedParticipantsId.value = null
+    return
+  }
+
+  expandedParticipantsId.value = eventId
+  participantsErrors[eventId] = ""
+  participantsLoading[eventId] = true
+
+  try {
+    participantsByEvent[eventId] = await getEventParticipants(eventId)
+  } catch (error) {
+    const serviceError = error as RegistrationServiceError
+    participantsErrors[eventId] = serviceError.message
+  } finally {
+    participantsLoading[eventId] = false
+  }
 }
 
 onMounted(async () => {
@@ -969,6 +1078,62 @@ onMounted(async () => {
 .event-form .row-actions {
   grid-column: span 2;
   margin-top: 6px;
+}
+
+.participants-button {
+  color: var(--purple-dark);
+  border: 1px solid #d5c8eb;
+  background: var(--white);
+}
+
+.participants-button:hover:not(:disabled) {
+  color: var(--white);
+  border-color: var(--purple);
+  background: var(--purple);
+}
+
+.participants-section {
+  padding-top: 14px;
+  margin-top: 14px;
+  border-top: 1px solid var(--gray-border);
+}
+
+.participants-table {
+  width: 100%;
+  font-size: 12px;
+  border-collapse: collapse;
+}
+
+.participants-table th {
+  padding: 8px 10px;
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--gray-text);
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  border-bottom: 1px solid var(--gray-border);
+}
+
+.participants-table td {
+  padding: 9px 10px;
+  color: var(--text-dark);
+  border-bottom: 1px solid var(--gray-border);
+}
+
+.participants-table .status-pill {
+  padding: 4px 9px;
+  font-size: 9px;
+}
+
+.participants-table .status-pill.is-registered {
+  color: var(--green);
+  background: var(--green-soft);
+}
+
+.participants-table .status-pill.is-cancelled {
+  color: var(--red);
+  background: var(--red-soft);
 }
 
 @media (max-width: 640px) {

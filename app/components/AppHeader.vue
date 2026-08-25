@@ -252,7 +252,7 @@ const navigationItems = computed<NavigationItem[]>(() => {
     items.push(
       {
         label: "Mis inscripciones",
-        to: "/registrations",
+        to: "/mis-inscripciones",
         icon: "✓"
       },
       {
