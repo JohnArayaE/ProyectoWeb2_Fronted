@@ -67,6 +67,25 @@
             >
               {{ statusLabel(event.status) }}
             </span>
+
+            <button
+              v-if="!isOrganizer"
+              type="button"
+              class="favorite-toggle"
+              :class="{ 'is-active': favoritesStore.isFavorite(event.id) }"
+              :disabled="togglingFavorite"
+              :aria-pressed="favoritesStore.isFavorite(event.id)"
+              :aria-label="
+                favoritesStore.isFavorite(event.id)
+                  ? 'Quitar de favoritos'
+                  : 'Agregar a favoritos'
+              "
+              @click="toggleFavorite"
+            >
+              <span aria-hidden="true">
+                {{ favoritesStore.isFavorite(event.id) ? "♥" : "♡" }}
+              </span>
+            </button>
           </div>
 
           <h2>{{ event.title }}</h2>
@@ -130,6 +149,7 @@
 import { useEventsStore } from "~/stores/events"
 import { useCategoriesStore } from "~/stores/categories"
 import { useAuthStore } from "~/stores/auth"
+import { useFavoritesStore } from "~/stores/favorites"
 
 definePageMeta({
   middleware: "auth"
@@ -139,9 +159,23 @@ const route = useRoute()
 const store = useEventsStore()
 const categoriesStore = useCategoriesStore()
 const authStore = useAuthStore()
+const favoritesStore = useFavoritesStore()
+
+const togglingFavorite = ref(false)
+
+async function toggleFavorite() {
+  if (togglingFavorite.value || !event.value) {
+    return
+  }
+
+  togglingFavorite.value = true
+  await favoritesStore.toggleFavorite(event.value.id)
+  togglingFavorite.value = false
+}
 
 const currentUserId = computed(() => authStore.user?.id ?? null)
 const currentUserRole = computed(() => authStore.user?.role ?? null)
+const isOrganizer = computed(() => currentUserRole.value === "organizer")
 
 const statusLabels: Record<string, string> = {
   draft: "Borrador",
@@ -211,7 +245,16 @@ onMounted(async () => {
   }
 
   await categoriesStore.fetchCategories({ limit: 100, includeInactive: true })
-  await store.fetchEvent(route.params.id as string)
+
+  if (isOrganizer.value) {
+    await store.fetchEvent(route.params.id as string)
+    return
+  }
+
+  await Promise.all([
+    store.fetchEvent(route.params.id as string),
+    favoritesStore.fetchFavorites()
+  ])
 })
 </script>
 
@@ -412,6 +455,43 @@ onMounted(async () => {
   align-items: center;
   gap: 10px;
   margin-bottom: 16px;
+}
+
+.favorite-toggle {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  margin-left: auto;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--red);
+  cursor: pointer;
+  place-items: center;
+  border: 1px solid var(--gray-border);
+  border-radius: 50%;
+  background: var(--white);
+  transition:
+    transform 150ms ease,
+    background 150ms ease,
+    border-color 150ms ease;
+}
+
+.favorite-toggle:hover:not(:disabled) {
+  border-color: var(--red-border);
+  background: var(--red-soft);
+  transform: scale(1.06);
+}
+
+.favorite-toggle.is-active {
+  color: var(--white);
+  border-color: var(--red);
+  background: var(--red);
+}
+
+.favorite-toggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .category-pill {

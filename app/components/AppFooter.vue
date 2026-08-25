@@ -165,22 +165,20 @@ const navigationItems = computed<NavigationItem[]>(() => {
       to: "/mis-actividades",
       icon: "▤"
     })
-
-    return items
+  } else {
+    items.push(
+      {
+        label: "Mis inscripciones",
+        to: "/registrations",
+        icon: "✓"
+      },
+      {
+        label: "Favoritos",
+        to: "/favoritos",
+        icon: "★"
+      }
+    )
   }
-
-  items.push(
-    {
-      label: "Mis inscripciones",
-      to: "/registrations",
-      icon: "✓"
-    },
-    {
-      label: "Favoritos",
-      to: "/favorites",
-      icon: "★"
-    }
-  )
 
   return items
 })

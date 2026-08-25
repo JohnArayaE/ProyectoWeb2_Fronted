@@ -1,5 +1,5 @@
 <template>
-  <div class="activities-page">
+  <div class="favorites-page">
     <AppHeader />
 
     <main>
@@ -15,8 +15,8 @@
 
         <div class="header-text">
           <span class="section-label">Comunidad</span>
-          <h2>Actividades</h2>
-          <p>Descubrí las actividades disponibles y sumate a las que te interesen.</p>
+          <h2>Favoritos</h2>
+          <p>Las actividades que guardaste para no perderlas de vista.</p>
         </div>
       </header>
 
@@ -26,8 +26,20 @@
         <div>
           <strong>Necesitás iniciar sesión</strong>
           <p>
-            Para ver las actividades tenés que iniciar sesión con tu cuenta.
+            Para ver tus favoritos tenés que iniciar sesión con tu cuenta.
             <NuxtLink to="/login">Ir a iniciar sesión</NuxtLink>
+          </p>
+        </div>
+      </div>
+
+      <!-- Con sesión pero rol organizador -->
+      <div v-else-if="isOrganizer" class="state-card">
+        <span class="state-icon" aria-hidden="true">i</span>
+        <div>
+          <strong>Esta sección no está disponible para organizadores</strong>
+          <p>
+            Los favoritos son una función para usuarios que participan en
+            actividades, no para quienes las organizan.
           </p>
         </div>
       </div>
@@ -35,9 +47,9 @@
       <template v-else>
         <section class="panel">
           <header class="panel-header">
-            <h3>Listado</h3>
-            <span v-if="store.pagination" class="total-badge">
-              {{ store.pagination.totalEvents }} actividades
+            <h3>Mis favoritos</h3>
+            <span v-if="!store.loading" class="total-badge">
+              {{ store.favorites.length }} guardados
             </span>
           </header>
 
@@ -47,89 +59,68 @@
           </div>
 
           <div v-if="store.loading" class="loading-row">
-            Cargando actividades...
+            Cargando favoritos...
           </div>
 
           <div
-            v-else-if="!store.events.length && !store.error"
+            v-else-if="!store.favorites.length && !store.error"
             class="empty-row"
           >
-            No hay actividades para mostrar.
+            <span class="empty-icon" aria-hidden="true">♡</span>
+            <strong>Todavía no tenés favoritos</strong>
+            <p>
+              Explorá las
+              <NuxtLink to="/actividades">actividades</NuxtLink>
+              disponibles y guardá las que te interesen.
+            </p>
           </div>
 
-          <div v-else class="event-grid">
-            <NuxtLink
-              v-for="event in store.events"
-              :key="event.id"
-              :to="`/actividades/${event.id}`"
-              class="event-card"
+          <div v-else class="favorite-grid">
+            <div
+              v-for="favorite in store.favorites"
+              :key="favorite.id"
+              class="favorite-card"
             >
-              <div class="event-card-top">
-                <span class="category-pill">
-                  {{ categoryName(event.category) }}
-                </span>
-
-                <div class="event-card-top-right">
+              <NuxtLink
+                :to="`/actividades/${favorite.event.id}`"
+                class="favorite-card-link"
+              >
+                <div class="favorite-card-top">
+                  <span class="category-pill">
+                    {{ categoryName(favorite.event.category) }}
+                  </span>
                   <span
                     class="status-pill"
-                    :class="`is-${event.status}`"
+                    :class="`is-${favorite.event.status}`"
                   >
-                    {{ statusLabel(event.status) }}
+                    {{ statusLabel(favorite.event.status) }}
                   </span>
-
-                  <button
-                    v-if="!isOrganizer"
-                    type="button"
-                    class="favorite-toggle"
-                    :class="{ 'is-active': favoritesStore.isFavorite(event.id) }"
-                    :disabled="togglingFavorites[event.id]"
-                    :aria-pressed="favoritesStore.isFavorite(event.id)"
-                    :aria-label="
-                      favoritesStore.isFavorite(event.id)
-                        ? 'Quitar de favoritos'
-                        : 'Agregar a favoritos'
-                    "
-                    @click.stop.prevent="toggleFavorite(event.id)"
-                  >
-                    <span aria-hidden="true">
-                      {{ favoritesStore.isFavorite(event.id) ? "♥" : "♡" }}
-                    </span>
-                  </button>
                 </div>
+
+                <h4>{{ favorite.event.title }}</h4>
+                <p class="event-description">{{ favorite.event.description }}</p>
+
+                <div class="event-meta">
+                  <span>📅 {{ formatDate(favorite.event.startDate) }}</span>
+                  <span>📍 {{ modalityLabel(favorite.event.modality) }}</span>
+                  <span>👥 {{ favorite.event.capacity }} cupos</span>
+                </div>
+              </NuxtLink>
+
+              <div class="favorite-card-actions">
+                <button
+                  type="button"
+                  class="favorite-toggle is-active"
+                  :disabled="removingIds[favorite.event.id]"
+                  aria-label="Quitar de favoritos"
+                  @click="removeFavorite(favorite.event.id)"
+                >
+                  <span aria-hidden="true">♥</span>
+                </button>
+
+                <span class="remove-hint">Quitar de favoritos</span>
               </div>
-
-              <h4>{{ event.title }}</h4>
-              <p class="event-description">{{ event.description }}</p>
-
-              <div class="event-meta">
-                <span>📅 {{ formatDate(event.startDate) }}</span>
-                <span>📍 {{ modalityLabel(event.modality) }}</span>
-                <span>👥 {{ event.capacity }} cupos</span>
-              </div>
-            </NuxtLink>
-          </div>
-
-          <div
-            v-if="store.pagination && store.pagination.totalPages > 1"
-            class="pagination"
-          >
-            <button
-              type="button"
-              :disabled="page <= 1"
-              @click="changePage(page - 1)"
-            >
-              Anterior
-            </button>
-
-            <span>Página {{ page }} de {{ store.pagination.totalPages }}</span>
-
-            <button
-              type="button"
-              :disabled="page >= store.pagination.totalPages"
-              @click="changePage(page + 1)"
-            >
-              Siguiente
-            </button>
+            </div>
           </div>
         </section>
       </template>
@@ -141,46 +132,31 @@
 </template>
 
 <script setup lang="ts">
-import { useEventsStore } from "~/stores/events"
+import { useFavoritesStore } from "~/stores/favorites"
 import { useCategoriesStore } from "~/stores/categories"
 import { useAuthStore } from "~/stores/auth"
-import { useFavoritesStore } from "~/stores/favorites"
 
 definePageMeta({
   middleware: "auth"
 })
 
 useHead({
-  title: "Actividades | CommunityHub",
+  title: "Favoritos | CommunityHub",
   meta: [
     {
       name: "description",
-      content: "Descubrí las actividades disponibles en CommunityHub."
+      content: "Tus actividades favoritas en CommunityHub."
     }
   ]
 })
 
-const store = useEventsStore()
+const store = useFavoritesStore()
 const categoriesStore = useCategoriesStore()
 const authStore = useAuthStore()
-const favoritesStore = useFavoritesStore()
 
 const isOrganizer = computed(() => authStore.user?.role === "organizer")
 
-const page = ref(1)
-const limit = 12
-
-const togglingFavorites = reactive<Record<string, boolean>>({})
-
-async function toggleFavorite(eventId: string) {
-  if (togglingFavorites[eventId]) {
-    return
-  }
-
-  togglingFavorites[eventId] = true
-  await favoritesStore.toggleFavorite(eventId)
-  togglingFavorites[eventId] = false
-}
+const removingIds = reactive<Record<string, boolean>>({})
 
 const statusLabels: Record<string, string> = {
   draft: "Borrador",
@@ -219,31 +195,23 @@ function categoryName(categoryId: string) {
   return category?.name ?? "Sin categoría"
 }
 
-async function loadEvents() {
-  await store.fetchEvents({
-    page: page.value,
-    limit
-  })
-}
+async function removeFavorite(eventId: string) {
+  if (removingIds[eventId]) {
+    return
+  }
 
-async function changePage(next: number) {
-  page.value = next
-  await loadEvents()
+  removingIds[eventId] = true
+  await store.removeFavorite(eventId)
+  removingIds[eventId] = false
 }
 
 onMounted(async () => {
-  if (!authStore.isAuthenticated) {
+  if (!authStore.isAuthenticated || isOrganizer.value) {
     return
   }
 
   await categoriesStore.fetchCategories({ limit: 100, includeInactive: true })
-
-  if (isOrganizer.value) {
-    await loadEvents()
-    return
-  }
-
-  await Promise.all([loadEvents(), favoritesStore.fetchFavorites()])
+  await store.fetchFavorites()
 })
 </script>
 
@@ -252,7 +220,7 @@ onMounted(async () => {
   box-sizing: border-box;
 }
 
-.activities-page {
+.favorites-page {
   --black: #09090b;
   --purple: #7c3aed;
   --purple-dark: #5b21b6;
@@ -286,7 +254,7 @@ onMounted(async () => {
     var(--gray-background);
 }
 
-.activities-page > main {
+.favorites-page > main {
   padding: 40px 24px 60px;
 }
 
@@ -400,14 +368,6 @@ onMounted(async () => {
   color: var(--gray-text);
 }
 
-.state-card code {
-  padding: 1px 5px;
-  font-size: 12px;
-  border-radius: 5px;
-  background: var(--purple-soft);
-  color: var(--purple-dark);
-}
-
 .state-card a {
   color: var(--purple-dark);
   font-weight: 800;
@@ -476,26 +436,55 @@ onMounted(async () => {
   line-height: 1.5;
 }
 
-.loading-row,
-.empty-row {
+.loading-row {
   padding: 30px 0;
   font-size: 13px;
   color: var(--gray-text);
   text-align: center;
 }
 
-.event-grid {
+.empty-row {
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  padding: 48px 16px;
+  text-align: center;
+}
+
+.empty-icon {
+  font-size: 32px;
+  color: var(--purple-light);
+}
+
+.empty-row strong {
+  font-size: 15px;
+  color: var(--text-dark);
+}
+
+.empty-row p {
+  margin: 0;
+  max-width: 360px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--gray-text);
+}
+
+.empty-row a {
+  color: var(--purple-dark);
+  font-weight: 800;
+  text-decoration: underline;
+}
+
+.favorite-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 16px;
 }
 
-.event-card {
+.favorite-card {
   display: grid;
   gap: 10px;
   padding: 20px;
-  color: inherit;
-  text-decoration: none;
   border: 1px solid var(--gray-border);
   border-radius: 16px;
   background: var(--white);
@@ -505,23 +494,85 @@ onMounted(async () => {
     border-color 180ms ease;
 }
 
-.event-card:hover {
+.favorite-card:hover {
   border-color: var(--purple-light);
   box-shadow: 0 16px 30px rgba(124, 58, 237, 0.16);
   transform: translateY(-3px);
 }
 
-.event-card-top {
+.favorite-card-link {
+  display: grid;
+  gap: 10px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.favorite-card-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
 }
 
-.event-card-top-right {
+.category-pill {
+  padding: 5px 10px;
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--purple-dark);
+  border-radius: 999px;
+  background: var(--purple-soft);
+}
+
+.status-pill {
+  padding: 5px 10px;
+  font-size: 10px;
+  font-weight: 800;
+  border-radius: 999px;
+  color: #77707f;
+  background: #f0edf3;
+}
+
+.status-pill.is-published {
+  color: var(--green);
+  background: var(--green-soft);
+}
+
+.status-pill.is-cancelled {
+  color: var(--red);
+  background: var(--red-soft);
+}
+
+.favorite-card h4 {
+  margin: 0;
+  font-size: 16px;
+  color: var(--text-dark);
+}
+
+.event-description {
+  margin: 0;
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--gray-text);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.event-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 11px;
+  color: var(--gray-text);
+}
+
+.favorite-card-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--gray-border);
 }
 
 .favorite-toggle {
@@ -560,83 +611,8 @@ onMounted(async () => {
   opacity: 0.6;
 }
 
-.category-pill {
-  padding: 5px 10px;
-  font-size: 10px;
-  font-weight: 800;
-  color: var(--purple-dark);
-  border-radius: 999px;
-  background: var(--purple-soft);
-}
-
-.status-pill {
-  padding: 5px 10px;
-  font-size: 10px;
-  font-weight: 800;
-  border-radius: 999px;
-  color: #77707f;
-  background: #f0edf3;
-}
-
-.status-pill.is-published {
-  color: var(--green);
-  background: var(--green-soft);
-}
-
-.status-pill.is-cancelled {
-  color: var(--red);
-  background: var(--red-soft);
-}
-
-.event-card h4 {
-  margin: 0;
-  font-size: 16px;
-  color: var(--text-dark);
-}
-
-.event-description {
-  margin: 0;
-  overflow: hidden;
-  font-size: 13px;
-  line-height: 1.6;
-  color: var(--gray-text);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-}
-
-.event-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+.remove-hint {
   font-size: 11px;
   color: var(--gray-text);
-}
-
-.pagination {
-  display: flex;
-  gap: 14px;
-  align-items: center;
-  justify-content: center;
-  margin-top: 20px;
-  font-size: 13px;
-  color: var(--gray-text);
-}
-
-.pagination button {
-  padding: 8px 14px;
-  font: inherit;
-  font-size: 12px;
-  font-weight: 800;
-  color: var(--purple-dark);
-  cursor: pointer;
-  border: 1px solid #d5c8eb;
-  border-radius: 9px;
-  background: var(--white);
-}
-
-.pagination button:disabled {
-  cursor: not-allowed;
-  opacity: 0.45;
 }
 </style>
