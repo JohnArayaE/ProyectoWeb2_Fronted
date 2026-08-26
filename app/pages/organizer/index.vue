@@ -85,17 +85,14 @@
                 <small>Suma de cupos de tus actividades activas/próximas</small>
               </article>
 
-              <article class="stat-card stat-card-muted">
+              <article class="stat-card">
                 <div class="stat-icon" aria-hidden="true">✓</div>
-                <p>
-                  Participantes
-                  <span class="soon-badge">Próximamente</span>
-                </p>
-                <strong>—</strong>
-                <small>
-                  Se habilitará cuando el módulo de inscripciones esté
-                  disponible.
+                <p>Participantes</p>
+                <strong>{{ totalParticipants ?? "—" }}</strong>
+                <small v-if="participantsError" class="stat-error">
+                  {{ participantsError }}
                 </small>
+                <small v-else>Inscriptos activos en tus actividades</small>
               </article>
             </div>
           </section>
@@ -141,6 +138,10 @@
 <script setup lang="ts">
 import { useEventsStore } from "~/stores/events"
 import { useAuthStore } from "~/stores/auth"
+import {
+  RegistrationServiceError,
+  getEventParticipants
+} from "~/services/registrationService"
 
 definePageMeta({
   middleware: "auth"
@@ -175,12 +176,34 @@ const totalCapacity = computed(() => {
     .reduce((sum, event) => sum + (event.capacity || 0), 0)
 })
 
+const totalParticipants = ref<number | null>(null)
+const participantsError = ref("")
+
+async function loadParticipantsSummary() {
+  if (!store.events.length) {
+    totalParticipants.value = 0
+    return
+  }
+
+  try {
+    const counts = await Promise.all(
+      store.events.map(event => getEventParticipants(event.id, "registered"))
+    )
+
+    totalParticipants.value = counts.reduce((sum, list) => sum + list.length, 0)
+  } catch (error) {
+    const serviceError = error as RegistrationServiceError
+    participantsError.value = serviceError.message
+  }
+}
+
 onMounted(async () => {
   if (!authStore.isAuthenticated) {
     return
   }
 
   await store.fetchEvents({ mine: true })
+  await loadParticipantsSummary()
 })
 </script>
 
@@ -438,11 +461,6 @@ onMounted(async () => {
   background: var(--white);
 }
 
-.stat-card-muted {
-  background: #faf9fc;
-  border-style: dashed;
-}
-
 .stat-icon {
   margin-bottom: 8px;
   font-size: 22px;
@@ -471,15 +489,8 @@ onMounted(async () => {
   color: var(--gray-text);
 }
 
-.soon-badge {
-  padding: 2px 8px;
-  font-size: 9px;
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  color: var(--purple-dark);
-  border-radius: 999px;
-  background: var(--purple-soft);
+.stat-error {
+  color: var(--red);
 }
 
 .shortcuts {

@@ -325,6 +325,7 @@
                   <span>📅 {{ formatDate(event.startDate) }} — {{ formatDate(event.endDate) }}</span>
                   <span>📍 {{ modalityLabel(event.modality) }}</span>
                   <span>👥 {{ event.capacity }} cupos</span>
+                  <span>✓ {{ participantCounts[event.id] ?? "…" }} inscriptos</span>
                 </div>
 
                 <div class="row-actions">
@@ -527,6 +528,7 @@ async function handleCreate() {
   if (result.success) {
     createSuccess.value = `Actividad "${createForm.title}" creada correctamente.`
     Object.assign(createForm, emptyForm())
+    await loadParticipantCounts()
   } else {
     createError.value = result.message
   }
@@ -576,6 +578,20 @@ const expandedParticipantsId = ref<string | null>(null)
 const participantsByEvent = reactive<Record<string, RegistrationParticipant[]>>({})
 const participantsLoading = reactive<Record<string, boolean>>({})
 const participantsErrors = reactive<Record<string, string>>({})
+const participantCounts = reactive<Record<string, number>>({})
+
+async function loadParticipantCounts() {
+  await Promise.all(
+    store.events.map(async event => {
+      try {
+        const registered = await getEventParticipants(event.id, "registered")
+        participantCounts[event.id] = registered.length
+      } catch {
+        // el badge se deja en "…"; la tabla de participantes sigue disponible bajo demanda
+      }
+    })
+  )
+}
 
 const participantStatusLabels: Record<RegistrationStatus, string> = {
   registered: "Inscripto",
@@ -615,6 +631,9 @@ async function toggleParticipants(eventId: string) {
 
   try {
     participantsByEvent[eventId] = await getEventParticipants(eventId)
+    participantCounts[eventId] = participantsByEvent[eventId].filter(
+      participant => participant.status === "registered"
+    ).length
   } catch (error) {
     const serviceError = error as RegistrationServiceError
     participantsErrors[eventId] = serviceError.message
@@ -630,6 +649,7 @@ onMounted(async () => {
 
   await categoriesStore.fetchCategories({ limit: 100 })
   await loadEvents()
+  await loadParticipantCounts()
 })
 </script>
 

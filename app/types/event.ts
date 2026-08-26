@@ -37,6 +37,12 @@ export interface ListEventsParams {
   page?: number
   limit?: number
   mine?: boolean
+  category?: string
+  date?: string
+  location?: string
+  organizer?: string
+  available?: boolean
+  search?: string
 }
 
 export interface CreateEventPayload {

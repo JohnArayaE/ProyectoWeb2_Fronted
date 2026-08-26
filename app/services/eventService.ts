@@ -104,7 +104,13 @@ export async function listEvents(
         query: {
           page: params.page,
           limit: params.limit,
-          mine: params.mine
+          mine: params.mine,
+          category: params.category,
+          date: params.date,
+          location: params.location,
+          organizer: params.organizer,
+          available: params.available,
+          search: params.search
         }
       }
     )

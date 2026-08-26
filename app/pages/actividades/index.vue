@@ -41,6 +41,59 @@
             </span>
           </header>
 
+          <form v-if="!isOrganizer" class="filters-bar" @submit.prevent="applyFilters">
+            <div class="filter-field">
+              <label for="filter-search">Buscar</label>
+              <input
+                id="filter-search"
+                v-model="filters.search"
+                type="text"
+                placeholder="Título o descripción"
+              >
+            </div>
+
+            <div class="filter-field">
+              <label for="filter-category">Categoría</label>
+              <select id="filter-category" v-model="filters.category">
+                <option value="">Todas</option>
+                <option
+                  v-for="category in categoriesStore.categories"
+                  :key="category.id"
+                  :value="category.id"
+                >
+                  {{ category.name }}
+                </option>
+              </select>
+            </div>
+
+            <div class="filter-field">
+              <label for="filter-date">Desde</label>
+              <input id="filter-date" v-model="filters.date" type="date">
+            </div>
+
+            <div class="filter-field">
+              <label for="filter-location">Ubicación</label>
+              <input
+                id="filter-location"
+                v-model="filters.location"
+                type="text"
+                placeholder="Nombre o dirección"
+              >
+            </div>
+
+            <label class="filter-checkbox">
+              <input v-model="filters.availableOnly" type="checkbox">
+              Solo con cupo disponible
+            </label>
+
+            <div class="filter-actions">
+              <button type="submit" class="filter-apply">Buscar</button>
+              <button type="button" class="filter-clear" @click="clearFilters">
+                Limpiar filtros
+              </button>
+            </div>
+          </form>
+
           <div v-if="store.error" class="error-message">
             <span aria-hidden="true">!</span>
             <p>{{ store.error }}</p>
@@ -168,6 +221,7 @@ import { useCategoriesStore } from "~/stores/categories"
 import { useAuthStore } from "~/stores/auth"
 import { useFavoritesStore } from "~/stores/favorites"
 import { useRegistrationsStore } from "~/stores/registrations"
+import type { ListEventsParams } from "~/types/event"
 
 definePageMeta({
   middleware: "auth"
@@ -188,11 +242,108 @@ const categoriesStore = useCategoriesStore()
 const authStore = useAuthStore()
 const favoritesStore = useFavoritesStore()
 const registrationsStore = useRegistrationsStore()
+const route = useRoute()
+const router = useRouter()
 
 const isOrganizer = computed(() => authStore.user?.role === "organizer")
 
 const page = ref(1)
 const limit = 12
+
+const filters = reactive({
+  search: "",
+  category: "",
+  date: "",
+  location: "",
+  availableOnly: false
+})
+
+function initFiltersFromRoute() {
+  const query = route.query
+
+  filters.search = typeof query.search === "string" ? query.search : ""
+  filters.category = typeof query.category === "string" ? query.category : ""
+  filters.date = typeof query.date === "string" ? query.date : ""
+  filters.location = typeof query.location === "string" ? query.location : ""
+  filters.availableOnly = query.available === "true"
+
+  const parsedPage = Number(query.page)
+  page.value = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1
+}
+
+function buildEventParams(): ListEventsParams {
+  const params: ListEventsParams = {
+    page: page.value,
+    limit
+  }
+
+  if (filters.search.trim()) {
+    params.search = filters.search.trim()
+  }
+
+  if (filters.category) {
+    params.category = filters.category
+  }
+
+  if (filters.date) {
+    params.date = filters.date
+  }
+
+  if (filters.location.trim()) {
+    params.location = filters.location.trim()
+  }
+
+  if (filters.availableOnly) {
+    params.available = true
+  }
+
+  return params
+}
+
+function syncRouteQuery() {
+  const query: Record<string, string> = {}
+
+  if (page.value > 1) {
+    query.page = String(page.value)
+  }
+
+  if (filters.search.trim()) {
+    query.search = filters.search.trim()
+  }
+
+  if (filters.category) {
+    query.category = filters.category
+  }
+
+  if (filters.date) {
+    query.date = filters.date
+  }
+
+  if (filters.location.trim()) {
+    query.location = filters.location.trim()
+  }
+
+  if (filters.availableOnly) {
+    query.available = "true"
+  }
+
+  router.replace({ query })
+}
+
+async function applyFilters() {
+  page.value = 1
+  syncRouteQuery()
+  await loadEvents()
+}
+
+async function clearFilters() {
+  filters.search = ""
+  filters.category = ""
+  filters.date = ""
+  filters.location = ""
+  filters.availableOnly = false
+  await applyFilters()
+}
 
 const togglingFavorites = reactive<Record<string, boolean>>({})
 
@@ -291,14 +442,12 @@ function categoryName(categoryId: string) {
 }
 
 async function loadEvents() {
-  await store.fetchEvents({
-    page: page.value,
-    limit
-  })
+  await store.fetchEvents(buildEventParams())
 }
 
 async function changePage(next: number) {
   page.value = next
+  syncRouteQuery()
   await loadEvents()
 }
 
@@ -306,6 +455,8 @@ onMounted(async () => {
   if (!authStore.isAuthenticated) {
     return
   }
+
+  initFiltersFromRoute()
 
   await categoriesStore.fetchCategories({ limit: 100, includeInactive: true })
 
@@ -517,6 +668,88 @@ onMounted(async () => {
   font-weight: 800;
   color: var(--purple-dark);
   border-radius: 999px;
+  background: var(--purple-soft);
+}
+
+.filters-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 14px;
+  padding: 16px;
+  margin-bottom: 20px;
+  border: 1px solid var(--gray-border);
+  border-radius: 16px;
+  background: #faf9fc;
+}
+
+.filter-field {
+  display: grid;
+  gap: 6px;
+  min-width: 160px;
+}
+
+.filter-field label {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--gray-text);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.filter-field input,
+.filter-field select {
+  padding: 9px 11px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--text-dark);
+  border: 1px solid var(--gray-border);
+  border-radius: 10px;
+  background: var(--white);
+}
+
+.filter-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.filter-actions {
+  display: flex;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.filter-apply,
+.filter-clear {
+  padding: 10px 16px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  border-radius: 10px;
+}
+
+.filter-apply {
+  color: var(--white);
+  border: 1px solid var(--purple);
+  background: var(--purple);
+}
+
+.filter-apply:hover {
+  background: var(--purple-dark);
+}
+
+.filter-clear {
+  color: var(--purple-dark);
+  border: 1px solid #d5c8eb;
+  background: var(--white);
+}
+
+.filter-clear:hover {
   background: var(--purple-soft);
 }
 

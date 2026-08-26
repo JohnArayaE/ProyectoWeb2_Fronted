@@ -152,6 +152,10 @@ const authStore = useAuthStore()
 
 const totalUsers = ref(0)
 const totalOrganizers = ref(0)
+const totalEvents = ref(0)
+const totalRegistrations = ref(0)
+const activeEvents = ref(0)
+const completedEvents = ref(0)
 
 const userInitial = computed(() => {
 
@@ -193,25 +197,25 @@ const statistics = computed(() => [
 
   {
     title: "Actividades",
-    value: 0,
+    value: totalEvents.value,
     icon: "📅"
   },
 
   {
     title: "Inscripciones",
-    value: 0,
+    value: totalRegistrations.value,
     icon: "✓"
   },
 
   {
     title: "Actividades activas",
-    value: 0,
+    value: activeEvents.value,
     icon: "●"
   },
 
   {
     title: "Finalizadas",
-    value: 0,
+    value: completedEvents.value,
     icon: "◆"
   }
 
@@ -236,6 +240,23 @@ async function loadDashboardData() {
 
     console.error(
       "Error cargando dashboard",
+      error
+    )
+  }
+
+  try {
+
+    const statsResponse = await adminService.getStats()
+
+    totalEvents.value = statsResponse.data.totalEvents
+    totalRegistrations.value = statsResponse.data.totalRegistrations
+    activeEvents.value = statsResponse.data.activeEvents
+    completedEvents.value = statsResponse.data.completedEvents
+
+  } catch (error) {
+
+    console.error(
+      "Error cargando estadísticas",
       error
     )
   }

@@ -18,6 +18,21 @@ interface UserResponse {
   }
 }
 
+export interface AdminStats {
+  totalUsers: number
+  totalOrganizers: number
+  totalEvents: number
+  activeEvents: number
+  completedEvents: number
+  totalRegistrations: number
+}
+
+interface StatsResponse {
+  success: boolean
+  message?: string
+  data: AdminStats
+}
+
 function getAuthToken(): string {
   if (!import.meta.client) {
     return ""
@@ -33,6 +48,21 @@ export const adminService = {
 
     return await $fetch<UsersResponse>(
       `${config.public.apiBase}/api/users`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    )
+  },
+
+  async getStats(): Promise<StatsResponse> {
+    const config = useRuntimeConfig()
+    const token = getAuthToken()
+
+    return await $fetch<StatsResponse>(
+      `${config.public.apiBase}/api/users/stats`,
       {
         method: "GET",
         headers: {
