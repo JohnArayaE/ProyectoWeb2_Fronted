@@ -1,24 +1,30 @@
 <template>
   <header class="site-header">
     <div class="navbar">
-      <!-- Marca -->
       <NuxtLink
         to="/"
         class="brand"
         aria-label="Ir a la página principal"
         @click="closeMobileMenu"
       >
-        <span class="brand-icon" aria-hidden="true">
+        <span
+          class="brand-icon"
+          aria-hidden="true"
+        >
           C
         </span>
 
         <div class="brand-information">
-          <small>PLATAFORMA COMUNITARIA</small>
-          <strong>CommunityHub</strong>
+          <small>
+            PLATAFORMA COMUNITARIA
+          </small>
+
+          <strong>
+            CommunityHub
+          </strong>
         </div>
       </NuxtLink>
 
-      <!-- Navegación de escritorio -->
       <nav
         class="desktop-navigation"
         aria-label="Navegación principal"
@@ -29,7 +35,8 @@
           :to="item.to"
           class="navigation-link"
           :class="{
-            'active-navigation-link': isNavigationItemActive(item)
+            'active-navigation-link':
+              isNavigationItemActive(item)
           }"
           :aria-current="
             isNavigationItemActive(item)
@@ -50,8 +57,31 @@
         </NuxtLink>
       </nav>
 
-      <!-- Usuario / acciones -->
       <div class="desktop-actions">
+        <NuxtLink
+          to="/notifications"
+          class="notification-button"
+          :class="{
+            'notification-button-active':
+              route.path === '/notifications'
+          }"
+          :aria-label="notificationAriaLabel"
+        >
+          <span
+            class="notification-bell"
+            aria-hidden="true"
+          >
+            🔔
+          </span>
+
+          <span
+            v-if="notificationsStore.unreadCount > 0"
+            class="notification-badge"
+          >
+            {{ unreadDisplay }}
+          </span>
+        </NuxtLink>
+
         <div class="user-information">
           <div class="user-avatar">
             <img
@@ -66,7 +96,9 @@
           </div>
 
           <div class="user-details">
-            <span>Hola,</span>
+            <span>
+              Hola,
+            </span>
 
             <strong>
               {{ authStore.user?.firstName || "Usuario" }}
@@ -98,12 +130,12 @@
         </button>
       </div>
 
-      <!-- Botón móvil -->
       <button
         type="button"
         class="mobile-menu-button"
         :class="{
-          'mobile-menu-button-open': mobileMenuOpen
+          'mobile-menu-button-open':
+            mobileMenuOpen
         }"
         :aria-expanded="mobileMenuOpen"
         :aria-label="
@@ -119,14 +151,12 @@
       </button>
     </div>
 
-    <!-- Navegación móvil -->
     <Transition name="mobile-menu">
       <div
         v-if="mobileMenuOpen"
         class="mobile-navigation"
       >
         <div class="mobile-navigation-content">
-          <!-- Usuario móvil -->
           <div class="mobile-user">
             <div class="mobile-user-avatar">
               <img
@@ -141,7 +171,9 @@
             </div>
 
             <div>
-              <small>Sesión iniciada como</small>
+              <small>
+                Sesión iniciada como
+              </small>
 
               <strong>
                 {{ fullName }}
@@ -163,7 +195,8 @@
               :to="item.to"
               class="mobile-link"
               :class="{
-                'active-mobile-link': isNavigationItemActive(item)
+                'active-mobile-link':
+                  isNavigationItemActive(item)
               }"
               @click="closeMobileMenu"
             >
@@ -179,6 +212,42 @@
               </strong>
 
               <span
+                class="mobile-link-arrow"
+                aria-hidden="true"
+              >
+                →
+              </span>
+            </NuxtLink>
+
+            <NuxtLink
+              to="/notifications"
+              class="mobile-link"
+              :class="{
+                'active-mobile-link':
+                  route.path === '/notifications'
+              }"
+              @click="closeMobileMenu"
+            >
+              <span
+                class="mobile-link-icon"
+                aria-hidden="true"
+              >
+                🔔
+              </span>
+
+              <strong>
+                Notificaciones
+              </strong>
+
+              <span
+                v-if="notificationsStore.unreadCount > 0"
+                class="mobile-notification-badge"
+              >
+                {{ unreadDisplay }}
+              </span>
+
+              <span
+                v-else
                 class="mobile-link-arrow"
                 aria-hidden="true"
               >
@@ -211,6 +280,7 @@
 
 <script setup lang="ts">
 import { useAuthStore } from "~/stores/auth"
+import { useNotificationsStore } from "~/stores/notifications"
 
 type NavigationItem = {
   label: string
@@ -219,52 +289,62 @@ type NavigationItem = {
 }
 
 const route = useRoute()
+
 const authStore = useAuthStore()
+const notificationsStore =
+  useNotificationsStore()
 
 const mobileMenuOpen = ref(false)
 const isLoggingOut = ref(false)
 
-const isOrganizer = computed(() => authStore.user?.role === "organizer")
+const isOrganizer = computed(() => {
+  return authStore.user?.role === "organizer"
+})
 
-const homeTo = computed(() => (isOrganizer.value ? "/organizer" : "/"))
+const homeTo = computed(() => {
+  return isOrganizer.value
+    ? "/organizer"
+    : "/"
+})
 
-const navigationItems = computed<NavigationItem[]>(() => {
-  const items: NavigationItem[] = [
-    {
-      label: "Inicio",
-      to: homeTo.value,
-      icon: "⌂"
-    },
-    {
-      label: "Actividades",
-      to: "/actividades",
-      icon: "⌕"
-    }
-  ]
-
-  if (isOrganizer.value) {
-    items.push({
-      label: "Mis actividades",
-      to: "/mis-actividades",
-      icon: "▤"
-    })
-  } else {
-    items.push(
+const navigationItems =
+  computed<NavigationItem[]>(() => {
+    const items: NavigationItem[] = [
       {
-        label: "Mis inscripciones",
-        to: "/mis-inscripciones",
-        icon: "✓"
+        label: "Inicio",
+        to: homeTo.value,
+        icon: "⌂"
       },
       {
-        label: "Favoritos",
-        to: "/favoritos",
-        icon: "★"
+        label: "Actividades",
+        to: "/actividades",
+        icon: "⌕"
       }
-    )
-  }
+    ]
 
-  return items
-})
+    if (isOrganizer.value) {
+      items.push({
+        label: "Mis actividades",
+        to: "/mis-actividades",
+        icon: "▤"
+      })
+    } else {
+      items.push(
+        {
+          label: "Mis inscripciones",
+          to: "/mis-inscripciones",
+          icon: "✓"
+        },
+        {
+          label: "Favoritos",
+          to: "/favoritos",
+          icon: "★"
+        }
+      )
+    }
+
+    return items
+  })
 
 const userInitial = computed(() => {
   return (
@@ -282,6 +362,29 @@ const fullName = computed(() => {
   return `${authStore.user.firstName} ${authStore.user.lastName}`
 })
 
+const unreadDisplay = computed(() => {
+  if (notificationsStore.unreadCount > 99) {
+    return "99+"
+  }
+
+  return notificationsStore.unreadCount
+})
+
+const notificationAriaLabel = computed(() => {
+  const count =
+    notificationsStore.unreadCount
+
+  if (count === 0) {
+    return "Notificaciones"
+  }
+
+  if (count === 1) {
+    return "Notificaciones, 1 sin leer"
+  }
+
+  return `Notificaciones, ${count} sin leer`
+})
+
 function isNavigationItemActive(
   item: NavigationItem
 ): boolean {
@@ -291,12 +394,26 @@ function isNavigationItemActive(
 
   return (
     route.path === item.to ||
-    route.path.startsWith(`${item.to}/`)
+    route.path.startsWith(
+      `${item.to}/`
+    )
   )
 }
 
 function closeMobileMenu() {
   mobileMenuOpen.value = false
+}
+
+async function loadNotifications() {
+  if (!authStore.isAuthenticated) {
+    return
+  }
+
+  if (route.path === "/notifications") {
+    return
+  }
+
+  await notificationsStore.fetchNotifications()
 }
 
 async function handleLogout() {
@@ -305,7 +422,10 @@ async function handleLogout() {
   }
 
   isLoggingOut.value = true
+
   closeMobileMenu()
+
+  notificationsStore.clearNotifications()
 
   authStore.logout()
 
@@ -314,7 +434,9 @@ async function handleLogout() {
   })
 }
 
-function handleEscapeKey(event: KeyboardEvent) {
+function handleEscapeKey(
+  event: KeyboardEvent
+) {
   if (event.key === "Escape") {
     closeMobileMenu()
   }
@@ -332,6 +454,8 @@ onMounted(() => {
     "keydown",
     handleEscapeKey
   )
+
+  loadNotifications()
 })
 
 onBeforeUnmount(() => {
@@ -382,10 +506,6 @@ onBeforeUnmount(() => {
   min-height: 78px;
   margin: 0 auto;
 }
-
-/* =========================
-   Marca
-========================= */
 
 .brand {
   display: flex;
@@ -450,10 +570,6 @@ onBeforeUnmount(() => {
   color: var(--white);
   letter-spacing: -0.3px;
 }
-
-/* =========================
-   Navegación
-========================= */
 
 .desktop-navigation {
   display: flex;
@@ -525,15 +641,59 @@ onBeforeUnmount(() => {
   background: var(--purple);
 }
 
-/* =========================
-   Usuario
-========================= */
-
 .desktop-actions {
   display: flex;
   gap: 13px;
   align-items: center;
   flex: 0 0 auto;
+}
+
+.notification-button {
+  position: relative;
+  display: grid;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  color: var(--purple-light);
+  text-decoration: none;
+  place-items: center;
+  border: 1px solid rgba(167, 139, 250, 0.25);
+  border-radius: 11px;
+  background: rgba(124, 58, 237, 0.08);
+  transition:
+    color 180ms ease,
+    background 180ms ease,
+    border-color 180ms ease,
+    transform 180ms ease;
+}
+
+.notification-button:hover,
+.notification-button-active {
+  color: var(--white);
+  border-color: var(--purple);
+  background: rgba(124, 58, 237, 0.22);
+  transform: translateY(-1px);
+}
+
+.notification-bell {
+  font-size: 17px;
+}
+
+.notification-badge {
+  position: absolute;
+  top: -6px;
+  right: -7px;
+  display: grid;
+  min-width: 19px;
+  height: 19px;
+  padding: 0 5px;
+  font-size: 8px;
+  font-weight: 900;
+  color: var(--white);
+  place-items: center;
+  border: 2px solid #111016;
+  border-radius: 999px;
+  background: var(--purple);
 }
 
 .user-information {
@@ -597,10 +757,6 @@ onBeforeUnmount(() => {
   background: rgba(255, 255, 255, 0.12);
 }
 
-/* =========================
-   Cerrar sesión
-========================= */
-
 .logout-button {
   display: flex;
   gap: 7px;
@@ -640,10 +796,6 @@ onBeforeUnmount(() => {
   font-size: 13px;
 }
 
-/* =========================
-   Botón móvil
-========================= */
-
 .mobile-menu-button {
   display: none;
   width: 44px;
@@ -682,10 +834,6 @@ onBeforeUnmount(() => {
     translateY(-6px)
     rotate(-45deg);
 }
-
-/* =========================
-   Navegación móvil
-========================= */
 
 .mobile-navigation {
   display: none;
@@ -785,6 +933,19 @@ onBeforeUnmount(() => {
   color: #6d6872;
 }
 
+.mobile-notification-badge {
+  display: grid;
+  min-width: 21px;
+  height: 21px;
+  padding: 0 6px;
+  font-size: 8px;
+  font-weight: 900;
+  color: var(--white);
+  place-items: center;
+  border-radius: 999px;
+  background: var(--purple);
+}
+
 .active-mobile-link {
   color: var(--white);
   border-color: rgba(167, 139, 250, 0.35);
@@ -819,11 +980,8 @@ onBeforeUnmount(() => {
   opacity: 0.6;
 }
 
-/* =========================
-   Accesibilidad
-========================= */
-
 .navigation-link:focus-visible,
+.notification-button:focus-visible,
 .logout-button:focus-visible,
 .mobile-menu-button:focus-visible,
 .mobile-link:focus-visible,
@@ -831,10 +989,6 @@ onBeforeUnmount(() => {
   outline: 3px solid rgba(167, 139, 250, 0.4);
   outline-offset: 3px;
 }
-
-/* =========================
-   Transición móvil
-========================= */
 
 .mobile-menu-enter-active,
 .mobile-menu-leave-active {
@@ -855,10 +1009,6 @@ onBeforeUnmount(() => {
   max-height: 600px;
   opacity: 1;
 }
-
-/* =========================
-   Responsive
-========================= */
 
 @media (max-width: 1050px) {
   .desktop-navigation,
