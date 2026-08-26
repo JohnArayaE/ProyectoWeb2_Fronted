@@ -8,13 +8,9 @@ import type {
 
 import { authService } from "~/services/authService"
 
-
 export const useAuthStore = defineStore("auth", () => {
-
   const token = ref<string | null>(null)
-
   const user = ref<AuthUser | null>(null)
-
 
   const isAuthenticated = computed(() => {
     return Boolean(
@@ -23,16 +19,13 @@ export const useAuthStore = defineStore("auth", () => {
     )
   })
 
-
   async function login(
     credentials: LoginRequest
   ) {
-
     const response =
       await authService.login(
         credentials
       )
-
 
     token.value =
       response.data.token
@@ -40,144 +33,124 @@ export const useAuthStore = defineStore("auth", () => {
     user.value =
       response.data.user
 
-
     saveSession()
-
 
     return response
   }
 
-
   async function register(
     data: RegisterRequest
   ) {
-
     const response =
       await authService.register(
         data
       )
 
-
-    // IMPORTANTE:
-    // El registro NO inicia sesión.
-    // Solo crea la cuenta.
-
     return response
   }
 
-
   function saveSession() {
-
     if (!import.meta.client) {
       return
     }
 
-
     if (token.value) {
-
       localStorage.setItem(
         "auth_token",
         token.value
       )
-
     }
 
-
     if (user.value) {
-
       localStorage.setItem(
         "auth_user",
         JSON.stringify(
           user.value
         )
       )
-
     }
-
   }
 
-
-  async function verifySession() {
-
+  function restoreLocalSession(): boolean {
     if (!import.meta.client) {
       return false
     }
-
 
     const storedToken =
       localStorage.getItem(
         "auth_token"
       )
 
+    const storedUser =
+      localStorage.getItem(
+        "auth_user"
+      )
 
-    if (!storedToken) {
-
-      logout()
-
+    if (
+      !storedToken ||
+      !storedUser
+    ) {
       return false
-
     }
 
-
     try {
+      const parsedUser =
+        JSON.parse(
+          storedUser
+        ) as AuthUser
 
       token.value =
         storedToken
 
-
-      const response =
-        await authService.getMe(
-          storedToken
-        )
-
-
       user.value =
-        response.data.user
-
-
-      localStorage.setItem(
-        "auth_user",
-        JSON.stringify(
-          response.data.user
-        )
-      )
-
+        parsedUser
 
       return true
-
-
     } catch {
-
-      logout()
-
       return false
-
     }
-
   }
 
+  async function verifySession() {
+  if (!import.meta.client) {
+    return false
+  }
+
+  const storedToken =
+    localStorage.getItem(
+      "auth_token"
+    )
+
+  const storedUser =
+    localStorage.getItem(
+      "auth_user"
+    )
+
+  if (
+    !storedToken ||
+    !storedUser
+  ) {
+    return false
+  }
+
+  return restoreLocalSession()
+}
 
   function logout() {
-
     token.value = null
-
     user.value = null
 
-
     if (import.meta.client) {
-
       localStorage.removeItem(
         "auth_token"
       )
 
-
       localStorage.removeItem(
         "auth_user"
       )
-
     }
-
   }
+
   return {
     token,
     user,
@@ -185,6 +158,7 @@ export const useAuthStore = defineStore("auth", () => {
     login,
     register,
     verifySession,
+    restoreLocalSession,
     logout
   }
 })

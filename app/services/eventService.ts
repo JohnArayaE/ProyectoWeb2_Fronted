@@ -8,10 +8,17 @@ import type {
 
 export class EventServiceError extends Error {
   status: number
+  isNetworkError: boolean
 
-  constructor(status: number, message: string) {
+  constructor(
+    status: number,
+    message: string,
+    isNetworkError = false
+  ) {
     super(message)
+
     this.status = status
+    this.isNetworkError = isNetworkError
     this.name = "EventServiceError"
   }
 }
@@ -54,7 +61,9 @@ function authHeaders(): Record<string, string> {
   }
 }
 
-function defaultMessageFor(status: number): string {
+function defaultMessageFor(
+  status: number
+): string {
   if (status === 401) {
     return "Tu sesión expiró o no iniciaste sesión. Volvé a iniciar sesión."
   }
@@ -74,20 +83,51 @@ function defaultMessageFor(status: number): string {
   return "Ocurrió un error al comunicarse con el servidor."
 }
 
-function normalizeError(error: unknown): EventServiceError {
+function normalizeError(
+  error: unknown
+): EventServiceError {
   if (error instanceof EventServiceError) {
     return error
   }
 
   const fetchError = error as {
-    response?: { status?: number, _data?: { message?: string } }
+    status?: number
+    statusCode?: number
+    message?: string
+    response?: {
+      status?: number
+      _data?: {
+        message?: string
+      }
+    }
   }
 
-  const status = fetchError.response?.status ?? 500
-  const message =
-    fetchError.response?._data?.message ?? defaultMessageFor(status)
+  const responseStatus =
+    fetchError.response?.status
 
-  return new EventServiceError(status, message)
+  const hasRealHttpResponse =
+    typeof responseStatus === "number" &&
+    responseStatus > 0
+
+  if (!hasRealHttpResponse) {
+    return new EventServiceError(
+      0,
+      "No hay conexión a Internet.",
+      true
+    )
+  }
+
+  const status = responseStatus
+
+  const message =
+    fetchError.response?._data?.message ??
+    defaultMessageFor(status)
+
+  return new EventServiceError(
+    status,
+    message,
+    false
+  )
 }
 
 export async function listEvents(
@@ -96,24 +136,27 @@ export async function listEvents(
   const config = useRuntimeConfig()
 
   try {
-    const response = await $fetch<ApiSuccess<ListEventsData>>(
-      "/api/events",
-      {
-        baseURL: config.public.apiBase,
-        headers: authHeaders(),
-        query: {
-          page: params.page,
-          limit: params.limit,
-          mine: params.mine,
-          category: params.category,
-          date: params.date,
-          location: params.location,
-          organizer: params.organizer,
-          available: params.available,
-          search: params.search
+    const response =
+      await $fetch<ApiSuccess<ListEventsData>>(
+        "/api/events",
+        {
+          baseURL: config.public.apiBase,
+
+          headers: authHeaders(),
+
+          query: {
+            page: params.page,
+            limit: params.limit,
+            mine: params.mine,
+            category: params.category,
+            date: params.date,
+            location: params.location,
+            organizer: params.organizer,
+            available: params.available,
+            search: params.search
+          }
         }
-      }
-    )
+      )
 
     return response.data
   } catch (error) {
@@ -121,17 +164,20 @@ export async function listEvents(
   }
 }
 
-export async function getEvent(id: string): Promise<EventItem> {
+export async function getEvent(
+  id: string
+): Promise<EventItem> {
   const config = useRuntimeConfig()
 
   try {
-    const response = await $fetch<ApiSuccess<SingleEventData>>(
-      `/api/events/${id}`,
-      {
-        baseURL: config.public.apiBase,
-        headers: authHeaders()
-      }
-    )
+    const response =
+      await $fetch<ApiSuccess<SingleEventData>>(
+        `/api/events/${id}`,
+        {
+          baseURL: config.public.apiBase,
+          headers: authHeaders()
+        }
+      )
 
     return response.data.event
   } catch (error) {
@@ -145,15 +191,16 @@ export async function createEvent(
   const config = useRuntimeConfig()
 
   try {
-    const response = await $fetch<ApiSuccess<SingleEventData>>(
-      "/api/events",
-      {
-        method: "POST",
-        baseURL: config.public.apiBase,
-        headers: authHeaders(),
-        body: data
-      }
-    )
+    const response =
+      await $fetch<ApiSuccess<SingleEventData>>(
+        "/api/events",
+        {
+          method: "POST",
+          baseURL: config.public.apiBase,
+          headers: authHeaders(),
+          body: data
+        }
+      )
 
     return response.data.event
   } catch (error) {
@@ -168,15 +215,16 @@ export async function updateEvent(
   const config = useRuntimeConfig()
 
   try {
-    const response = await $fetch<ApiSuccess<SingleEventData>>(
-      `/api/events/${id}`,
-      {
-        method: "PUT",
-        baseURL: config.public.apiBase,
-        headers: authHeaders(),
-        body: data
-      }
-    )
+    const response =
+      await $fetch<ApiSuccess<SingleEventData>>(
+        `/api/events/${id}`,
+        {
+          method: "PUT",
+          baseURL: config.public.apiBase,
+          headers: authHeaders(),
+          body: data
+        }
+      )
 
     return response.data.event
   } catch (error) {
@@ -184,15 +232,20 @@ export async function updateEvent(
   }
 }
 
-export async function deleteEvent(id: string): Promise<void> {
+export async function deleteEvent(
+  id: string
+): Promise<void> {
   const config = useRuntimeConfig()
 
   try {
-    await $fetch(`/api/events/${id}`, {
-      method: "DELETE",
-      baseURL: config.public.apiBase,
-      headers: authHeaders()
-    })
+    await $fetch(
+      `/api/events/${id}`,
+      {
+        method: "DELETE",
+        baseURL: config.public.apiBase,
+        headers: authHeaders()
+      }
+    )
   } catch (error) {
     throw normalizeError(error)
   }

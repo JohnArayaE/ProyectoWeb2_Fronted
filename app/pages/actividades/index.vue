@@ -3,212 +3,378 @@
     <AppHeader />
 
     <main>
-    <section class="page-shell">
-      <header class="page-header">
-        <div class="brand">
-          <div class="brand-icon" aria-hidden="true">C</div>
-          <div>
-            <p class="brand-subtitle">PLATAFORMA COMUNITARIA</p>
-            <h1>CommunityHub</h1>
-          </div>
-        </div>
-
-        <div class="header-text">
-          <span class="section-label">Comunidad</span>
-          <h2>Actividades</h2>
-          <p>Descubrí las actividades disponibles y sumate a las que te interesen.</p>
-        </div>
-      </header>
-
-      <!-- Sin sesión iniciada -->
-      <div v-if="!authStore.isAuthenticated" class="state-card">
-        <span class="state-icon" aria-hidden="true">i</span>
-        <div>
-          <strong>Necesitás iniciar sesión</strong>
-          <p>
-            Para ver las actividades tenés que iniciar sesión con tu cuenta.
-            <NuxtLink to="/login">Ir a iniciar sesión</NuxtLink>
-          </p>
-        </div>
-      </div>
-
-      <template v-else>
-        <section class="panel">
-          <header class="panel-header">
-            <h3>Listado</h3>
-            <span v-if="store.pagination" class="total-badge">
-              {{ store.pagination.totalEvents }} actividades
-            </span>
-          </header>
-
-          <form v-if="!isOrganizer" class="filters-bar" @submit.prevent="applyFilters">
-            <div class="filter-field">
-              <label for="filter-search">Buscar</label>
-              <input
-                id="filter-search"
-                v-model="filters.search"
-                type="text"
-                placeholder="Título o descripción"
-              >
-            </div>
-
-            <div class="filter-field">
-              <label for="filter-category">Categoría</label>
-              <select id="filter-category" v-model="filters.category">
-                <option value="">Todas</option>
-                <option
-                  v-for="category in categoriesStore.categories"
-                  :key="category.id"
-                  :value="category.id"
-                >
-                  {{ category.name }}
-                </option>
-              </select>
-            </div>
-
-            <div class="filter-field">
-              <label for="filter-date">Desde</label>
-              <input id="filter-date" v-model="filters.date" type="date">
-            </div>
-
-            <div class="filter-field">
-              <label for="filter-location">Ubicación</label>
-              <input
-                id="filter-location"
-                v-model="filters.location"
-                type="text"
-                placeholder="Nombre o dirección"
-              >
-            </div>
-
-            <label class="filter-checkbox">
-              <input v-model="filters.availableOnly" type="checkbox">
-              Solo con cupo disponible
-            </label>
-
-            <div class="filter-actions">
-              <button type="submit" class="filter-apply">Buscar</button>
-              <button type="button" class="filter-clear" @click="clearFilters">
-                Limpiar filtros
-              </button>
-            </div>
-          </form>
-
-          <div v-if="store.error" class="error-message">
-            <span aria-hidden="true">!</span>
-            <p>{{ store.error }}</p>
-          </div>
-
-          <div v-if="store.loading" class="loading-row">
-            Cargando actividades...
-          </div>
-
-          <div
-            v-else-if="!store.events.length && !store.error"
-            class="empty-row"
-          >
-            No hay actividades para mostrar.
-          </div>
-
-          <div v-else class="event-grid">
+      <section class="page-shell">
+        <header class="page-header">
+          <div class="brand">
             <div
-              v-for="event in store.events"
-              :key="event.id"
-              class="event-card"
+              class="brand-icon"
+              aria-hidden="true"
             >
-              <NuxtLink
-                :to="`/actividades/${event.id}`"
-                class="event-card-link"
-              >
-                <div class="event-card-top">
-                  <span class="category-pill">
-                    {{ categoryName(event.category) }}
-                  </span>
+              C
+            </div>
 
-                  <div class="event-card-top-right">
-                    <span
-                      class="status-pill"
-                      :class="`is-${event.status}`"
-                    >
-                      {{ statusLabel(event.status) }}
-                    </span>
+            <div>
+              <p class="brand-subtitle">
+                PLATAFORMA COMUNITARIA
+              </p>
 
-                    <button
-                      v-if="!isOrganizer"
-                      type="button"
-                      class="favorite-toggle"
-                      :class="{ 'is-active': favoritesStore.isFavorite(event.id) }"
-                      :disabled="togglingFavorites[event.id]"
-                      :aria-pressed="favoritesStore.isFavorite(event.id)"
-                      :aria-label="
-                        favoritesStore.isFavorite(event.id)
-                          ? 'Quitar de favoritos'
-                          : 'Agregar a favoritos'
-                      "
-                      @click.stop.prevent="toggleFavorite(event.id)"
-                    >
-                      <span aria-hidden="true">
-                        {{ favoritesStore.isFavorite(event.id) ? "♥" : "♡" }}
-                      </span>
-                    </button>
-                  </div>
-                </div>
+              <h1>
+                CommunityHub
+              </h1>
+            </div>
+          </div>
 
-                <h4>{{ event.title }}</h4>
-                <p class="event-description">{{ event.description }}</p>
+          <div class="header-text">
+            <span class="section-label">
+              Comunidad
+            </span>
 
-                <div class="event-meta">
-                  <span>📅 {{ formatDate(event.startDate) }}</span>
-                  <span>📍 {{ modalityLabel(event.modality) }}</span>
-                  <span>👥 {{ event.capacity }} cupos</span>
-                </div>
+            <h2>
+              Actividades
+            </h2>
+
+            <p>
+              Descubrí las actividades disponibles y sumate a las que te interesen.
+            </p>
+          </div>
+        </header>
+
+        <div
+          v-if="!authStore.isAuthenticated"
+          class="state-card"
+        >
+          <span
+            class="state-icon"
+            aria-hidden="true"
+          >
+            i
+          </span>
+
+          <div>
+            <strong>
+              Necesitás iniciar sesión
+            </strong>
+
+            <p>
+              Para ver las actividades tenés que iniciar sesión con tu cuenta.
+              <NuxtLink to="/login">
+                Ir a iniciar sesión
               </NuxtLink>
+            </p>
+          </div>
+        </div>
 
-              <div v-if="!isOrganizer" class="event-card-actions">
-                <button
-                  type="button"
-                  class="registration-button"
-                  :class="{
-                    'is-registered': registrationsStore.isRegistered(event.id)
-                  }"
-                  :disabled="registrationButtonDisabled(event.id)"
-                  @click="toggleRegistration(event.id)"
+        <template v-else>
+          <div
+            v-if="store.isOffline"
+            class="offline-message"
+          >
+            <div
+              class="offline-icon"
+              aria-hidden="true"
+            >
+              !
+            </div>
+
+            <div>
+              <strong>
+                Estás sin conexión
+              </strong>
+
+              <p v-if="store.usingCachedEvents">
+                Estás viendo las actividades previamente cargadas.
+                Algunas acciones no están disponibles hasta recuperar la conexión.
+              </p>
+
+              <p v-else>
+                No hay conexión a Internet y todavía no existen actividades guardadas.
+              </p>
+            </div>
+          </div>
+
+          <section class="panel">
+            <header class="panel-header">
+              <h3>
+                Listado
+              </h3>
+
+              <span
+                v-if="store.pagination"
+                class="total-badge"
+              >
+                {{ store.pagination.totalEvents }} actividades
+              </span>
+            </header>
+
+            <form
+              v-if="!isOrganizer && !store.isOffline"
+              class="filters-bar"
+              @submit.prevent="applyFilters"
+            >
+              <div class="filter-field">
+                <label for="filter-search">
+                  Buscar
+                </label>
+
+                <input
+                  id="filter-search"
+                  v-model="filters.search"
+                  type="text"
+                  placeholder="Título o descripción"
                 >
-                  {{ registrationButtonLabel(event.id) }}
+              </div>
+
+              <div class="filter-field">
+                <label for="filter-category">
+                  Categoría
+                </label>
+
+                <select
+                  id="filter-category"
+                  v-model="filters.category"
+                >
+                  <option value="">
+                    Todas
+                  </option>
+
+                  <option
+                    v-for="category in categoriesStore.categories"
+                    :key="category.id"
+                    :value="category.id"
+                  >
+                    {{ category.name }}
+                  </option>
+                </select>
+              </div>
+
+              <div class="filter-field">
+                <label for="filter-date">
+                  Desde
+                </label>
+
+                <input
+                  id="filter-date"
+                  v-model="filters.date"
+                  type="date"
+                >
+              </div>
+
+              <div class="filter-field">
+                <label for="filter-location">
+                  Ubicación
+                </label>
+
+                <input
+                  id="filter-location"
+                  v-model="filters.location"
+                  type="text"
+                  placeholder="Nombre o dirección"
+                >
+              </div>
+
+              <label class="filter-checkbox">
+                <input
+                  v-model="filters.availableOnly"
+                  type="checkbox"
+                >
+
+                Solo con cupo disponible
+              </label>
+
+              <div class="filter-actions">
+                <button
+                  type="submit"
+                  class="filter-apply"
+                >
+                  Buscar
                 </button>
 
-                <p v-if="registrationErrors[event.id]" class="registration-error">
-                  {{ registrationErrors[event.id] }}
-                </p>
+                <button
+                  type="button"
+                  class="filter-clear"
+                  @click="clearFilters"
+                >
+                  Limpiar filtros
+                </button>
+              </div>
+            </form>
+
+            <div
+              v-if="store.error"
+              class="error-message"
+            >
+              <span aria-hidden="true">
+                !
+              </span>
+
+              <p>
+                {{ store.error }}
+              </p>
+            </div>
+
+            <div
+              v-if="store.loading"
+              class="loading-row"
+            >
+              Cargando actividades...
+            </div>
+
+            <div
+              v-else-if="!store.events.length && !store.error"
+              class="empty-row"
+            >
+              No hay actividades para mostrar.
+            </div>
+
+            <div
+              v-else
+              class="event-grid"
+            >
+              <div
+                v-for="event in store.events"
+                :key="event.id"
+                class="event-card"
+              >
+                <NuxtLink
+                  :to="`/actividades/${event.id}`"
+                  class="event-card-link"
+                  :class="{
+                    'offline-event-link': store.isOffline
+                  }"
+                  :aria-disabled="store.isOffline"
+                  @click="handleEventNavigation"
+                >
+                  <div class="event-card-top">
+                    <span class="category-pill">
+                      {{ categoryName(event.category) }}
+                    </span>
+
+                    <div class="event-card-top-right">
+                      <span
+                        class="status-pill"
+                        :class="`is-${event.status}`"
+                      >
+                        {{ statusLabel(event.status) }}
+                      </span>
+
+                      <button
+                        v-if="!isOrganizer"
+                        type="button"
+                        class="favorite-toggle"
+                        :class="{
+                          'is-active': favoritesStore.isFavorite(event.id)
+                        }"
+                        :disabled="
+                          store.isOffline ||
+                          togglingFavorites[event.id]
+                        "
+                        :aria-pressed="favoritesStore.isFavorite(event.id)"
+                        :aria-label="
+                          favoritesStore.isFavorite(event.id)
+                            ? 'Quitar de favoritos'
+                            : 'Agregar a favoritos'
+                        "
+                        @click.stop.prevent="toggleFavorite(event.id)"
+                      >
+                        <span aria-hidden="true">
+                          {{
+                            favoritesStore.isFavorite(event.id)
+                              ? "♥"
+                              : "♡"
+                          }}
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <h4>
+                    {{ event.title }}
+                  </h4>
+
+                  <p class="event-description">
+                    {{ event.description }}
+                  </p>
+
+                  <div class="event-meta">
+                    <span>
+                      📅 {{ formatDate(event.startDate) }}
+                    </span>
+
+                    <span>
+                      📍 {{ modalityLabel(event.modality) }}
+                    </span>
+
+                    <span>
+                      👥 {{ event.capacity }} cupos
+                    </span>
+                  </div>
+                </NuxtLink>
+
+                <div
+                  v-if="!isOrganizer"
+                  class="event-card-actions"
+                >
+                  <button
+                    type="button"
+                    class="registration-button"
+                    :class="{
+                      'is-registered':
+                        registrationsStore.isRegistered(event.id)
+                    }"
+                    :disabled="registrationButtonDisabled(event.id)"
+                    @click="toggleRegistration(event.id)"
+                  >
+                    {{ registrationButtonLabel(event.id) }}
+                  </button>
+
+                  <p
+                    v-if="store.isOffline"
+                    class="offline-action-message"
+                  >
+                    Disponible nuevamente cuando tengas conexión.
+                  </p>
+
+                  <p
+                    v-else-if="registrationErrors[event.id]"
+                    class="registration-error"
+                  >
+                    {{ registrationErrors[event.id] }}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div
-            v-if="store.pagination && store.pagination.totalPages > 1"
-            class="pagination"
-          >
-            <button
-              type="button"
-              :disabled="page <= 1"
-              @click="changePage(page - 1)"
+            <div
+              v-if="
+                !store.isOffline &&
+                store.pagination &&
+                store.pagination.totalPages > 1
+              "
+              class="pagination"
             >
-              Anterior
-            </button>
+              <button
+                type="button"
+                :disabled="page <= 1"
+                @click="changePage(page - 1)"
+              >
+                Anterior
+              </button>
 
-            <span>Página {{ page }} de {{ store.pagination.totalPages }}</span>
+              <span>
+                Página {{ page }} de {{ store.pagination.totalPages }}
+              </span>
 
-            <button
-              type="button"
-              :disabled="page >= store.pagination.totalPages"
-              @click="changePage(page + 1)"
-            >
-              Siguiente
-            </button>
-          </div>
-        </section>
-      </template>
-    </section>
+              <button
+                type="button"
+                :disabled="page >= store.pagination.totalPages"
+                @click="changePage(page + 1)"
+              >
+                Siguiente
+              </button>
+            </div>
+          </section>
+        </template>
+      </section>
     </main>
 
     <AppFooter />
@@ -221,6 +387,7 @@ import { useCategoriesStore } from "~/stores/categories"
 import { useAuthStore } from "~/stores/auth"
 import { useFavoritesStore } from "~/stores/favorites"
 import { useRegistrationsStore } from "~/stores/registrations"
+
 import type { ListEventsParams } from "~/types/event"
 
 definePageMeta({
@@ -229,6 +396,7 @@ definePageMeta({
 
 useHead({
   title: "Actividades | CommunityHub",
+
   meta: [
     {
       name: "description",
@@ -242,12 +410,16 @@ const categoriesStore = useCategoriesStore()
 const authStore = useAuthStore()
 const favoritesStore = useFavoritesStore()
 const registrationsStore = useRegistrationsStore()
+
 const route = useRoute()
 const router = useRouter()
 
-const isOrganizer = computed(() => authStore.user?.role === "organizer")
+const isOrganizer = computed(() => {
+  return authStore.user?.role === "organizer"
+})
 
 const page = ref(1)
+
 const limit = 12
 
 const filters = reactive({
@@ -261,14 +433,37 @@ const filters = reactive({
 function initFiltersFromRoute() {
   const query = route.query
 
-  filters.search = typeof query.search === "string" ? query.search : ""
-  filters.category = typeof query.category === "string" ? query.category : ""
-  filters.date = typeof query.date === "string" ? query.date : ""
-  filters.location = typeof query.location === "string" ? query.location : ""
-  filters.availableOnly = query.available === "true"
+  filters.search =
+    typeof query.search === "string"
+      ? query.search
+      : ""
 
-  const parsedPage = Number(query.page)
-  page.value = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1
+  filters.category =
+    typeof query.category === "string"
+      ? query.category
+      : ""
+
+  filters.date =
+    typeof query.date === "string"
+      ? query.date
+      : ""
+
+  filters.location =
+    typeof query.location === "string"
+      ? query.location
+      : ""
+
+  filters.availableOnly =
+    query.available === "true"
+
+  const parsedPage =
+    Number(query.page)
+
+  page.value =
+    Number.isFinite(parsedPage) &&
+    parsedPage > 0
+      ? parsedPage
+      : 1
 }
 
 function buildEventParams(): ListEventsParams {
@@ -278,19 +473,23 @@ function buildEventParams(): ListEventsParams {
   }
 
   if (filters.search.trim()) {
-    params.search = filters.search.trim()
+    params.search =
+      filters.search.trim()
   }
 
   if (filters.category) {
-    params.category = filters.category
+    params.category =
+      filters.category
   }
 
   if (filters.date) {
-    params.date = filters.date
+    params.date =
+      filters.date
   }
 
   if (filters.location.trim()) {
-    params.location = filters.location.trim()
+    params.location =
+      filters.location.trim()
   }
 
   if (filters.availableOnly) {
@@ -304,65 +503,102 @@ function syncRouteQuery() {
   const query: Record<string, string> = {}
 
   if (page.value > 1) {
-    query.page = String(page.value)
+    query.page =
+      String(page.value)
   }
 
   if (filters.search.trim()) {
-    query.search = filters.search.trim()
+    query.search =
+      filters.search.trim()
   }
 
   if (filters.category) {
-    query.category = filters.category
+    query.category =
+      filters.category
   }
 
   if (filters.date) {
-    query.date = filters.date
+    query.date =
+      filters.date
   }
 
   if (filters.location.trim()) {
-    query.location = filters.location.trim()
+    query.location =
+      filters.location.trim()
   }
 
   if (filters.availableOnly) {
     query.available = "true"
   }
 
-  router.replace({ query })
+  router.replace({
+    query
+  })
 }
 
 async function applyFilters() {
+  if (store.isOffline) {
+    return
+  }
+
   page.value = 1
+
   syncRouteQuery()
+
   await loadEvents()
 }
 
 async function clearFilters() {
+  if (store.isOffline) {
+    return
+  }
+
   filters.search = ""
   filters.category = ""
   filters.date = ""
   filters.location = ""
   filters.availableOnly = false
+
   await applyFilters()
 }
 
-const togglingFavorites = reactive<Record<string, boolean>>({})
+const togglingFavorites =
+  reactive<Record<string, boolean>>({})
 
-async function toggleFavorite(eventId: string) {
-  if (togglingFavorites[eventId]) {
+async function toggleFavorite(
+  eventId: string
+) {
+  if (
+    store.isOffline ||
+    togglingFavorites[eventId]
+  ) {
     return
   }
 
   togglingFavorites[eventId] = true
-  await favoritesStore.toggleFavorite(eventId)
+
+  await favoritesStore.toggleFavorite(
+    eventId
+  )
+
   togglingFavorites[eventId] = false
 }
 
-const togglingRegistrations = reactive<Record<string, boolean>>({})
-const registrationErrors = reactive<Record<string, string>>({})
-const fullCapacityEvents = reactive<Record<string, boolean>>({})
+const togglingRegistrations =
+  reactive<Record<string, boolean>>({})
 
-function registrationButtonLabel(eventId: string) {
-  if (registrationsStore.isRegistered(eventId)) {
+const registrationErrors =
+  reactive<Record<string, string>>({})
+
+const fullCapacityEvents =
+  reactive<Record<string, boolean>>({})
+
+function registrationButtonLabel(
+  eventId: string
+) {
+  if (
+    registrationsStore.isRegistered(eventId)
+  ) {
     return "Cancelar inscripción"
   }
 
@@ -373,30 +609,54 @@ function registrationButtonLabel(eventId: string) {
   return "Inscribirme"
 }
 
-function registrationButtonDisabled(eventId: string) {
-  if (togglingRegistrations[eventId]) {
+function registrationButtonDisabled(
+  eventId: string
+) {
+  if (store.isOffline) {
     return true
   }
 
-  return !registrationsStore.isRegistered(eventId) && !!fullCapacityEvents[eventId]
+  if (
+    togglingRegistrations[eventId]
+  ) {
+    return true
+  }
+
+  return (
+    !registrationsStore.isRegistered(eventId) &&
+    !!fullCapacityEvents[eventId]
+  )
 }
 
-async function toggleRegistration(eventId: string) {
-  if (togglingRegistrations[eventId]) {
+async function toggleRegistration(
+  eventId: string
+) {
+  if (
+    store.isOffline ||
+    togglingRegistrations[eventId]
+  ) {
     return
   }
 
   togglingRegistrations[eventId] = true
+
   registrationErrors[eventId] = ""
 
-  const result = await registrationsStore.toggleRegistration(eventId)
+  const result =
+    await registrationsStore.toggleRegistration(
+      eventId
+    )
 
   if (result.success) {
     fullCapacityEvents[eventId] = false
   } else {
-    registrationErrors[eventId] = result.message
+    registrationErrors[eventId] =
+      result.message
 
-    if (result.status === 409 && /capacidad|cupo/i.test(result.message)) {
+    if (
+      result.status === 409 &&
+      /capacidad|cupo/i.test(result.message)
+    ) {
       fullCapacityEvents[eventId] = true
     }
   }
@@ -417,48 +677,94 @@ const modalityLabels: Record<string, string> = {
   hybrid: "Híbrida"
 }
 
-function statusLabel(status: string) {
+function statusLabel(
+  status: string
+) {
   return statusLabels[status] ?? status
 }
 
-function modalityLabel(modality: string) {
+function modalityLabel(
+  modality: string
+) {
   return modalityLabels[modality] ?? modality
 }
 
-function formatDate(value: string) {
-  return new Date(value).toLocaleDateString("es-AR", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric"
-  })
-}
-
-function categoryName(categoryId: string) {
-  const category = categoriesStore.categories.find(
-    item => item.id === categoryId
+function formatDate(
+  value: string
+) {
+  return new Date(
+    value
+  ).toLocaleDateString(
+    "es-CR",
+    {
+      day: "2-digit",
+      month: "short",
+      year: "numeric"
+    }
   )
-
-  return category?.name ?? "Sin categoría"
 }
 
-async function loadEvents() {
-  await store.fetchEvents(buildEventParams())
+function categoryName(
+  categoryId: string
+) {
+  const category =
+    categoriesStore.categories.find(
+      item => item.id === categoryId
+    )
+
+  return (
+    category?.name ??
+    "Sin categoría"
+  )
 }
 
-async function changePage(next: number) {
-  page.value = next
-  syncRouteQuery()
-  await loadEvents()
-}
-
-onMounted(async () => {
-  if (!authStore.isAuthenticated) {
+function handleEventNavigation(
+  event: MouseEvent
+) {
+  if (!store.isOffline) {
     return
   }
 
-  initFiltersFromRoute()
+  event.preventDefault()
+}
 
-  await categoriesStore.fetchCategories({ limit: 100, includeInactive: true })
+async function loadEvents() {
+  await store.fetchEvents(
+    buildEventParams()
+  )
+}
+
+async function changePage(
+  next: number
+) {
+  if (store.isOffline) {
+    return
+  }
+
+  page.value = next
+
+  syncRouteQuery()
+
+  await loadEvents()
+}
+
+function handleOffline() {
+  store.updateConnectionStatus()
+
+  store.loadEventsFromCache()
+}
+
+async function handleOnline() {
+  store.updateConnectionStatus()
+
+  if (store.isOffline) {
+    return
+  }
+
+  await categoriesStore.fetchCategories({
+    limit: 100,
+    includeInactive: true
+  })
 
   if (isOrganizer.value) {
     await loadEvents()
@@ -470,6 +776,59 @@ onMounted(async () => {
     favoritesStore.fetchFavorites(),
     registrationsStore.fetchMyRegistrations()
   ])
+}
+
+onMounted(async () => {
+  if (!authStore.isAuthenticated) {
+    return
+  }
+
+  window.addEventListener(
+    "offline",
+    handleOffline
+  )
+
+  window.addEventListener(
+    "online",
+    handleOnline
+  )
+
+  initFiltersFromRoute()
+
+  store.updateConnectionStatus()
+
+  if (store.isOffline) {
+    await loadEvents()
+    return
+  }
+
+  await categoriesStore.fetchCategories({
+    limit: 100,
+    includeInactive: true
+  })
+
+  if (isOrganizer.value) {
+    await loadEvents()
+    return
+  }
+
+  await Promise.all([
+    loadEvents(),
+    favoritesStore.fetchFavorites(),
+    registrationsStore.fetchMyRegistrations()
+  ])
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener(
+    "offline",
+    handleOffline
+  )
+
+  window.removeEventListener(
+    "online",
+    handleOnline
+  )
 })
 </script>
 
@@ -517,10 +876,10 @@ onMounted(async () => {
 }
 
 .page-shell {
-  width: min(1080px, 100%);
-  margin: 0 auto;
   display: grid;
   gap: 24px;
+  width: min(1080px, 100%);
+  margin: 0 auto;
 }
 
 .page-header {
@@ -544,8 +903,14 @@ onMounted(async () => {
   color: var(--white);
   place-items: center;
   border-radius: 15px;
-  background: linear-gradient(145deg, #8b5cf6, var(--purple));
-  box-shadow: 0 10px 24px rgba(124, 58, 237, 0.25);
+  background:
+    linear-gradient(
+      145deg,
+      #8b5cf6,
+      var(--purple)
+    );
+  box-shadow:
+    0 10px 24px rgba(124, 58, 237, 0.25);
 }
 
 .brand-subtitle {
@@ -596,7 +961,8 @@ onMounted(async () => {
   border: 1px solid var(--gray-border);
   border-radius: 20px;
   background: var(--white);
-  box-shadow: 0 20px 50px rgba(24, 14, 40, 0.1);
+  box-shadow:
+    0 20px 50px rgba(24, 14, 40, 0.1);
 }
 
 .state-icon {
@@ -626,26 +992,69 @@ onMounted(async () => {
   color: var(--gray-text);
 }
 
-.state-card code {
-  padding: 1px 5px;
-  font-size: 12px;
-  border-radius: 5px;
-  background: var(--purple-soft);
-  color: var(--purple-dark);
-}
-
 .state-card a {
   color: var(--purple-dark);
   font-weight: 800;
   text-decoration: underline;
 }
 
+.offline-message {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 17px 19px;
+  color: #4f3870;
+  border: 1px solid #cfc0e8;
+  border-radius: 16px;
+  background:
+    linear-gradient(
+      135deg,
+      #f4effc,
+      #ffffff
+    );
+  box-shadow:
+    0 10px 25px rgba(91, 33, 182, 0.08);
+}
+
+.offline-icon {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  font-size: 13px;
+  font-weight: 900;
+  color: var(--white);
+  place-items: center;
+  border-radius: 50%;
+  background: var(--purple);
+}
+
+.offline-message strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 13px;
+  color: var(--purple-dark);
+}
+
+.offline-message p {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--gray-text);
+}
+
 .panel {
   padding: 28px;
   border: 1px solid rgba(255, 255, 255, 0.85);
   border-radius: 22px;
-  background: linear-gradient(180deg, #ffffff 0%, #fdfcff 100%);
-  box-shadow: 0 24px 60px rgba(24, 14, 40, 0.12);
+  background:
+    linear-gradient(
+      180deg,
+      #ffffff 0%,
+      #fdfcff 100%
+    );
+  box-shadow:
+    0 24px 60px rgba(24, 14, 40, 0.12);
 }
 
 .panel-header {
@@ -674,8 +1083,8 @@ onMounted(async () => {
 .filters-bar {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
   gap: 14px;
+  align-items: flex-end;
   padding: 16px;
   margin-bottom: 20px;
   border: 1px solid var(--gray-border);
@@ -710,8 +1119,8 @@ onMounted(async () => {
 
 .filter-checkbox {
   display: flex;
-  align-items: center;
   gap: 8px;
+  align-items: center;
   font-size: 12px;
   font-weight: 700;
   color: var(--text-dark);
@@ -794,7 +1203,11 @@ onMounted(async () => {
 
 .event-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns:
+    repeat(
+      auto-fill,
+      minmax(260px, 1fr)
+    );
   gap: 16px;
 }
 
@@ -813,7 +1226,8 @@ onMounted(async () => {
 
 .event-card:hover {
   border-color: var(--purple-light);
-  box-shadow: 0 16px 30px rgba(124, 58, 237, 0.16);
+  box-shadow:
+    0 16px 30px rgba(124, 58, 237, 0.16);
   transform: translateY(-3px);
 }
 
@@ -822,6 +1236,10 @@ onMounted(async () => {
   gap: 10px;
   color: inherit;
   text-decoration: none;
+}
+
+.offline-event-link {
+  cursor: default;
 }
 
 .event-card-actions {
@@ -863,9 +1281,9 @@ onMounted(async () => {
 }
 
 .registration-button.is-registered:hover:not(:disabled) {
+  color: var(--white);
   border-color: var(--red);
   background: var(--red);
-  color: var(--white);
 }
 
 .registration-button:disabled {
@@ -880,17 +1298,25 @@ onMounted(async () => {
   color: var(--red);
 }
 
+.offline-action-message {
+  margin: 0;
+  font-size: 9px;
+  line-height: 1.5;
+  color: var(--gray-text);
+  text-align: center;
+}
+
 .event-card-top {
   display: flex;
+  gap: 8px;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
 }
 
 .event-card-top-right {
   display: flex;
-  align-items: center;
   gap: 8px;
+  align-items: center;
 }
 
 .favorite-toggle {
@@ -926,7 +1352,7 @@ onMounted(async () => {
 
 .favorite-toggle:disabled {
   cursor: not-allowed;
-  opacity: 0.6;
+  opacity: 0.45;
 }
 
 .category-pill {
@@ -942,8 +1368,8 @@ onMounted(async () => {
   padding: 5px 10px;
   font-size: 10px;
   font-weight: 800;
-  border-radius: 999px;
   color: #77707f;
+  border-radius: 999px;
   background: #f0edf3;
 }
 
@@ -964,16 +1390,16 @@ onMounted(async () => {
 }
 
 .event-description {
+  display: -webkit-box;
   margin: 0;
   overflow: hidden;
   font-size: 13px;
   line-height: 1.6;
   color: var(--gray-text);
-  display: -webkit-box;
+  line-clamp: 2;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
 }
-
 .event-meta {
   display: flex;
   flex-wrap: wrap;
@@ -1007,5 +1433,38 @@ onMounted(async () => {
 .pagination button:disabled {
   cursor: not-allowed;
   opacity: 0.45;
+}
+
+@media (max-width: 640px) {
+  .activities-page > main {
+    padding: 30px 16px 50px;
+  }
+
+  .panel {
+    padding: 20px;
+  }
+
+  .offline-message {
+    padding: 15px;
+  }
+
+  .filters-bar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .filter-field {
+    width: 100%;
+  }
+
+  .filter-actions {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .filter-apply,
+  .filter-clear {
+    flex: 1;
+  }
 }
 </style>

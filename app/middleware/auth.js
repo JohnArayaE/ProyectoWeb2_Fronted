@@ -7,11 +7,19 @@ export default defineNuxtRouteMiddleware(async () => {
 
   const authStore = useAuthStore()
 
-  const sessionValid = await authStore.verifySession()
+  if (!navigator.onLine) {
+    const localSession =
+      authStore.restoreLocalSession()
+
+    if (localSession) {
+      return
+    }
+  }
+
+  const sessionValid =
+    await authStore.verifySession()
 
   if (!sessionValid) {
-    return navigateTo("/login", {
-      external: true
-    })
+    return navigateTo("/login")
   }
 })
