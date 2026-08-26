@@ -59,7 +59,7 @@
             <div class="hero-links">
               <NuxtLink
                 class="primary-action"
-                to="/activities"
+                to="/actividades"
               >
                 Explorar actividades
 
@@ -70,7 +70,7 @@
 
               <NuxtLink
                 class="secondary-action"
-                to="/registrations"
+                to="/mis-inscripciones"
               >
                 Mis inscripciones
               </NuxtLink>
@@ -132,7 +132,7 @@
 
               <NuxtLink
                 class="profile-action"
-                to="/activities"
+                to="/actividades"
               >
                 Comenzar a explorar
 
@@ -206,6 +206,269 @@
           </div>
         </div>
       </section>
+      <!-- Dashboard de usuario -->
+      <section
+        v-if="isUserRole"
+        class="dashboard-section"
+      >
+        <div class="section-container dashboard-container">
+          <!-- a) Próximas actividades -->
+          <div class="dashboard-block">
+            <div class="dashboard-block-header">
+              <h3>Próximas actividades</h3>
+
+              <NuxtLink to="/actividades">
+                Ver todas
+              </NuxtLink>
+            </div>
+
+            <div
+              v-if="upcoming.loading"
+              class="dashboard-loading"
+            >
+              Cargando actividades...
+            </div>
+
+            <div
+              v-else-if="upcoming.error"
+              class="dashboard-error"
+            >
+              {{ upcoming.error }}
+            </div>
+
+            <div
+              v-else-if="!upcoming.items.length"
+              class="dashboard-empty"
+            >
+              No hay actividades próximas por el momento.
+            </div>
+
+            <ul
+              v-else
+              class="dashboard-list"
+            >
+              <li
+                v-for="event in upcoming.items"
+                :key="event.id"
+              >
+                <NuxtLink :to="`/actividades/${event.id}`">
+                  <strong>{{ event.title }}</strong>
+                  <span>{{ formatEventDate(event.startDate) }}</span>
+                </NuxtLink>
+              </li>
+            </ul>
+          </div>
+
+          <!-- b) Actividades inscritas -->
+          <div class="dashboard-block">
+            <div class="dashboard-block-header">
+              <h3>Actividades inscritas</h3>
+
+              <NuxtLink to="/mis-inscripciones">
+                Ver todas
+              </NuxtLink>
+            </div>
+
+            <div
+              v-if="registrationsStore.loading"
+              class="dashboard-loading"
+            >
+              Cargando inscripciones...
+            </div>
+
+            <div
+              v-else-if="registrationsStore.error"
+              class="dashboard-error"
+            >
+              {{ registrationsStore.error }}
+            </div>
+
+            <div
+              v-else-if="!activeRegistrations.length"
+              class="dashboard-empty"
+            >
+              Todavía no te inscribiste a ninguna actividad.
+            </div>
+
+            <ul
+              v-else
+              class="dashboard-list"
+            >
+              <li
+                v-for="registration in activeRegistrations"
+                :key="registration.id"
+              >
+                <NuxtLink :to="`/actividades/${registration.event.id}`">
+                  <strong>{{ registration.event.title }}</strong>
+                  <span>{{ formatEventDate(registration.event.startDate) }}</span>
+                </NuxtLink>
+              </li>
+            </ul>
+          </div>
+
+          <!-- c) Favoritos -->
+          <div class="dashboard-block">
+            <div class="dashboard-block-header">
+              <h3>Favoritos</h3>
+
+              <NuxtLink to="/favoritos">
+                Ver todos
+              </NuxtLink>
+            </div>
+
+            <div
+              v-if="favoritesStore.loading"
+              class="dashboard-loading"
+            >
+              Cargando favoritos...
+            </div>
+
+            <div
+              v-else-if="favoritesStore.error"
+              class="dashboard-error"
+            >
+              {{ favoritesStore.error }}
+            </div>
+
+            <div
+              v-else-if="!favoritesPreview.length"
+              class="dashboard-empty"
+            >
+              Todavía no tenés favoritos.
+            </div>
+
+            <ul
+              v-else
+              class="dashboard-list"
+            >
+              <li
+                v-for="favorite in favoritesPreview"
+                :key="favorite.id"
+              >
+                <NuxtLink :to="`/actividades/${favorite.event.id}`">
+                  <strong>{{ favorite.event.title }}</strong>
+                  <span>{{ formatEventDate(favorite.event.startDate) }}</span>
+                </NuxtLink>
+              </li>
+            </ul>
+          </div>
+
+          <!-- d) Historial -->
+          <div class="dashboard-block">
+            <div class="dashboard-block-header">
+              <h3>Historial</h3>
+            </div>
+
+            <div
+              v-if="registrationsStore.loading"
+              class="dashboard-loading"
+            >
+              Cargando historial...
+            </div>
+
+            <div
+              v-else-if="registrationsStore.error"
+              class="dashboard-error"
+            >
+              {{ registrationsStore.error }}
+            </div>
+
+            <div
+              v-else-if="!historyRegistrations.length"
+              class="dashboard-empty"
+            >
+              Todavía no tenés actividades completadas en tu historial.
+            </div>
+
+            <ul
+              v-else
+              class="dashboard-list"
+            >
+              <li
+                v-for="registration in historyRegistrations"
+                :key="registration.id"
+              >
+                <NuxtLink :to="`/actividades/${registration.event.id}`">
+                  <strong>{{ registration.event.title }}</strong>
+                  <span>Completada · {{ formatEventDate(registration.event.startDate) }}</span>
+                </NuxtLink>
+              </li>
+            </ul>
+          </div>
+
+          <!-- e) Notificaciones -->
+          <div class="dashboard-block dashboard-block-wide">
+            <div class="dashboard-block-header">
+              <h3>Notificaciones</h3>
+
+              <NuxtLink to="/notifications">
+                Ver todas
+              </NuxtLink>
+            </div>
+
+            <div
+              v-if="notificationsStore.loading"
+              class="dashboard-loading"
+            >
+              Cargando notificaciones...
+            </div>
+
+            <div
+              v-else-if="notificationsStore.error"
+              class="dashboard-error"
+            >
+              {{ notificationsStore.error }}
+            </div>
+
+            <div
+              v-else-if="!notificationsStore.notifications.length"
+              class="dashboard-empty"
+            >
+              No tenés notificaciones todavía.
+            </div>
+
+            <ul
+              v-else
+              class="dashboard-notification-list"
+            >
+              <li
+                v-for="notification in notificationsStore.notifications.slice(0, 5)"
+                :key="notification.id"
+                :class="{ unread: !notification.isRead }"
+              >
+                <div class="dashboard-notification-content">
+                  <strong>{{ notification.title }}</strong>
+                  <p>{{ notification.message }}</p>
+                  <span class="dashboard-notification-date">
+                    {{ formatNotificationDate(notification.createdAt) }}
+                  </span>
+                </div>
+
+                <button
+                  v-if="!notification.isRead"
+                  type="button"
+                  class="mark-read-button"
+                  :disabled="notificationsStore.markingAsReadId === notification.id"
+                  @click="handleMarkAsRead(notification.id)"
+                >
+                  {{
+                    notificationsStore.markingAsReadId === notification.id
+                      ? "Marcando..."
+                      : "Marcar como leída"
+                  }}
+                </button>
+
+                <span
+                  v-else
+                  class="dashboard-read-label"
+                >
+                  Leída
+                </span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
     </main>
 
     <AppFooter />
@@ -214,6 +477,11 @@
 
 <script setup lang="ts">
 import { useAuthStore } from "~/stores/auth"
+import { useRegistrationsStore } from "~/stores/registrations"
+import { useFavoritesStore } from "~/stores/favorites"
+import { useNotificationsStore } from "~/stores/notifications"
+import { listEvents } from "~/services/eventService"
+import type { EventItem } from "~/types/event"
 
 definePageMeta({
   middleware: "auth"
@@ -228,8 +496,37 @@ type QuickAction = {
 }
 
 const authStore = useAuthStore()
+const registrationsStore = useRegistrationsStore()
+const favoritesStore = useFavoritesStore()
+const notificationsStore = useNotificationsStore()
 
 const searchQuery = ref("")
+
+const isUserRole = computed(() => {
+  return authStore.user?.role === "user"
+})
+
+const upcoming = reactive({
+  items: [] as EventItem[],
+  loading: false,
+  error: ""
+})
+
+const activeRegistrations = computed(() => {
+  return registrationsStore.registrations.filter(
+    registration => registration.status === "registered"
+  )
+})
+
+const historyRegistrations = computed(() => {
+  return registrationsStore.registrations.filter(
+    registration => registration.event?.status === "completed"
+  )
+})
+
+const favoritesPreview = computed(() => {
+  return favoritesStore.favorites.slice(0, 5)
+})
 
 const userInitial = computed(() => {
   return (
@@ -254,7 +551,7 @@ const quickActions: QuickAction[] = [
       "Descubre eventos y actividades disponibles en tu comunidad.",
     action: "Ver actividades",
     icon: "⌕",
-    to: "/activities"
+    to: "/actividades"
   },
   {
     title: "Mis inscripciones",
@@ -262,7 +559,7 @@ const quickActions: QuickAction[] = [
       "Consulta las actividades en las que ya reservaste tu espacio.",
     action: "Ver inscripciones",
     icon: "✓",
-    to: "/registrations"
+    to: "/mis-inscripciones"
   },
   {
     title: "Mis favoritos",
@@ -270,23 +567,93 @@ const quickActions: QuickAction[] = [
       "Encuentra rápidamente las actividades que guardaste.",
     action: "Ver favoritos",
     icon: "★",
-    to: "/favorites"
+    to: "/favoritos"
   }
 ]
 
 async function handleSearch() {
   if (!searchQuery.value) {
-    await navigateTo("/activities")
+    await navigateTo("/actividades")
     return
   }
 
   await navigateTo({
-    path: "/activities",
+    path: "/actividades",
     query: {
       search: searchQuery.value
     }
   })
 }
+
+function todayDateParam() {
+  const now = new Date()
+  const yyyy = now.getFullYear()
+  const mm = String(now.getMonth() + 1).padStart(2, "0")
+  const dd = String(now.getDate()).padStart(2, "0")
+
+  return `${yyyy}-${mm}-${dd}`
+}
+
+function formatEventDate(value: string) {
+  return new Date(value).toLocaleDateString("es-AR", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric"
+  })
+}
+
+function formatNotificationDate(value?: string) {
+  if (!value) {
+    return ""
+  }
+
+  return new Date(value).toLocaleString("es-AR", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  })
+}
+
+async function loadUpcomingEvents() {
+  upcoming.loading = true
+  upcoming.error = ""
+
+  try {
+    const data = await listEvents({
+      date: todayDateParam(),
+      limit: 20
+    })
+
+    upcoming.items = [...data.events]
+      .sort(
+        (a, b) =>
+          new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+      )
+      .slice(0, 5)
+  } catch (error: any) {
+    upcoming.error =
+      error?.message || "No fue posible cargar las próximas actividades."
+  } finally {
+    upcoming.loading = false
+  }
+}
+
+async function handleMarkAsRead(notificationId: string) {
+  await notificationsStore.markAsRead(notificationId)
+}
+
+onMounted(() => {
+  if (!isUserRole.value) {
+    return
+  }
+
+  loadUpcomingEvents()
+  registrationsStore.fetchMyRegistrations()
+  favoritesStore.fetchFavorites()
+  notificationsStore.fetchNotifications()
+})
 </script>
 
 <style scoped>
@@ -942,6 +1309,192 @@ async function handleSearch() {
   color: var(--purple-dark);
   text-transform: uppercase;
   letter-spacing: 0.8px;
+}
+
+/* =========================
+   Dashboard de usuario
+========================= */
+
+.dashboard-section {
+  padding: 0 0 100px;
+  background: var(--gray-background);
+}
+
+.dashboard-container {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.dashboard-block {
+  display: flex;
+  flex-direction: column;
+  padding: 22px;
+  border: 1px solid var(--gray-border);
+  border-radius: 18px;
+  background: var(--white);
+  box-shadow: 0 12px 30px rgba(33, 21, 50, 0.06);
+}
+
+.dashboard-block-wide {
+  grid-column: span 2;
+}
+
+.dashboard-block-header {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.dashboard-block-header h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.dashboard-block-header a {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--purple-dark);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.dashboard-block-header a:hover {
+  text-decoration: underline;
+}
+
+.dashboard-loading,
+.dashboard-error,
+.dashboard-empty {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--gray-text);
+}
+
+.dashboard-error {
+  color: #b93d52;
+}
+
+.dashboard-list {
+  display: grid;
+  gap: 10px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.dashboard-list a {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 11px 13px;
+  color: inherit;
+  text-decoration: none;
+  border: 1px solid var(--gray-border);
+  border-radius: 12px;
+  transition: border-color 160ms ease, background 160ms ease;
+}
+
+.dashboard-list a:hover {
+  border-color: rgba(124, 58, 237, 0.3);
+  background: var(--purple-soft);
+}
+
+.dashboard-list a strong {
+  font-size: 12px;
+}
+
+.dashboard-list a span {
+  font-size: 10px;
+  color: var(--gray-text);
+}
+
+.dashboard-notification-list {
+  display: grid;
+  gap: 10px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.dashboard-notification-list li {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px;
+  border: 1px solid var(--gray-border);
+  border-radius: 12px;
+}
+
+.dashboard-notification-list li.unread {
+  border-color: #c8b2ed;
+  background: #f7f3ff;
+}
+
+.dashboard-notification-content {
+  min-width: 0;
+}
+
+.dashboard-notification-content strong {
+  display: block;
+  font-size: 12px;
+}
+
+.dashboard-notification-content p {
+  margin: 4px 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--gray-text);
+}
+
+.dashboard-notification-date {
+  font-size: 9px;
+  color: #9a949f;
+}
+
+.mark-read-button {
+  flex: 0 0 auto;
+  padding: 8px 12px;
+  font: inherit;
+  font-size: 9px;
+  font-weight: 900;
+  color: var(--purple-dark);
+  white-space: nowrap;
+  cursor: pointer;
+  border: 1px solid #d7cce9;
+  border-radius: 9px;
+  background: var(--white);
+}
+
+.mark-read-button:hover:not(:disabled) {
+  color: var(--white);
+  border-color: var(--purple);
+  background: var(--purple);
+}
+
+.mark-read-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.dashboard-read-label {
+  flex: 0 0 auto;
+  font-size: 9px;
+  font-weight: 800;
+  color: #99929f;
+}
+
+@media (max-width: 800px) {
+  .dashboard-container {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-block-wide {
+    grid-column: span 1;
+  }
 }
 
 /* =========================

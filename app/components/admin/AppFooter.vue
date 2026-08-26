@@ -235,11 +235,6 @@ const navigationItems: NavigationItem[] = [
     label: "Categorías",
     to: "/categorias",
     icon: "◆"
-  },
-  {
-    label: "Estadísticas",
-    to: "/admin/statistics",
-    icon: "★"
   }
 ]
 </script>
